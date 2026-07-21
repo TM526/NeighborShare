@@ -1,0 +1,2 @@
+# NeighborShare
+NeighbourShare is a cross-platform mobile application designed to reduce food insecurity in Canada by connecting individuals with surplus household food to neighbors in need.
