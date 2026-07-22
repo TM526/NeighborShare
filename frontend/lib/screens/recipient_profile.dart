@@ -50,6 +50,9 @@ class _CreateRecipientProfileScreenState
     if (value == null || value.trim().isEmpty) {
       return '$fieldName is required';
     }
+    if (value.trim().length < 2) {
+      return '$fieldName is too short';
+    }
     return null;
   }
 
@@ -69,8 +72,22 @@ class _CreateRecipientProfileScreenState
       return 'Phone number is required';
     }
     final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digitsOnly.length < 10) {
-      return 'Enter a valid phone number (min. 10 digits)';
+    if (digitsOnly.length != 10) {
+      return 'Enter a valid 10-digit phone number';
+    }
+    return null;
+  }
+
+  String? _validatePostalCode(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Postal code is required';
+    }
+    final postalRegex = RegExp(
+      r'^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z] ?\d[ABCEGHJ-NPRSTV-Z]\d$',
+      caseSensitive: false,
+    );
+    if (!postalRegex.hasMatch(value.trim())) {
+      return 'Enter a valid Canadian postal code (e.g. M5V 2T6)';
     }
     return null;
   }
@@ -324,8 +341,7 @@ class _CreateRecipientProfileScreenState
                                 keyboardType: TextInputType.text,
                                 textCapitalization:
                                     TextCapitalization.characters,
-                                validator: (v) =>
-                                    _validateRequired(v, 'Postal code'),
+                                validator: _validatePostalCode,
                               ),
                             ],
                           ),
