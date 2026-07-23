@@ -10,8 +10,13 @@ const {
     deleteRecipient
 } = require("../controllers/recipientController");
 
+const {
+    getRequestsByRecipient
+} = require("../controllers/foodRequestController");
+
 router.post("/", createRecipient);
 router.get("/", getAllRecipients);
+router.get("/:id/requests", getRequestsByRecipient);
 router.get("/:id", getRecipientById);
 router.put("/:id", updateRecipient);
 router.delete("/:id", deleteRecipient);
