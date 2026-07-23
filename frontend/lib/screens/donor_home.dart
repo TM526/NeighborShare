@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'donor_profile.dart';
+import 'recipient_profile.dart';
 import 'browse_listings.dart';
+import 'create_listing.dart';
+import 'my_listings.dart';
 
 class DonorHomeScreen extends StatefulWidget {
   const DonorHomeScreen({super.key});
@@ -13,28 +16,37 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
   int _selectedIndex = 0;
 
   void _onNavTap(int index) {
-    setState(() => _selectedIndex = index);
+    setState(() {
+      _selectedIndex = index;
+    });
 
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const CreateDonorProfileScreen(),
-        ),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const BrowseListingsScreen(),
-        ),
-      );
-    } else if (index == 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("My Listings coming soon"),
-        ),
-      );
+    switch (index) {
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const CreateDonorProfileScreen(),
+          ),
+        );
+        break;
+
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const BrowseListingsScreen(),
+          ),
+        );
+        break;
+
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const MyListingsScreen(),
+          ),
+        );
+        break;
     }
   }
 
@@ -43,92 +55,161 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'NeighbourShare',
+          "NeighbourShare",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
-        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 20),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 10),
 
-            const Icon(
-              Icons.volunteer_activism,
-              size: 90,
-              color: Color(0xFF2E7D32),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              "Welcome to NeighbourShare!",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
+              const Icon(
+                Icons.volunteer_activism,
+                color: Color(0xFF2E7D32),
+                size: 90,
               ),
-            ),
 
-            const SizedBox(height: 10),
+              const SizedBox(height: 20),
 
-            const Text(
-              "Help reduce food waste by donating surplus food or browse available food donations in your community.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black87,
-              ),
-            ),
-
-            const SizedBox(height: 35),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.search),
-                label: const Text("Browse Listings"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              const Text(
+                "Welcome to NeighbourShare!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const BrowseListingsScreen(),
-                    ),
-                  );
-                },
               ),
-            ),
 
-            const SizedBox(height: 15),
+              const SizedBox(height: 10),
 
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.person),
-                label: const Text("Create Donor Profile"),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              const Text(
+                "Help reduce food waste by donating surplus food or browse available food donations in your community.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CreateDonorProfileScreen(),
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
+
+              const SizedBox(height: 35),
+
+              SizedBox(
+                height: 55,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.search),
+                  label: const Text("Browse Listings"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const BrowseListingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                height: 55,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.person),
+                  label: const Text("Create Donor Profile"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF388E3C),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                        const CreateDonorProfileScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                height: 55,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.people),
+                  label: const Text("Create Recipient Profile"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                        const CreateRecipientProfileScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                height: 55,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add_box),
+                  label: const Text("Create Listing"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF43A047),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CreateListingScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                height: 55,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.list_alt),
+                  label: const Text("My Listings"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF66BB6A),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyListingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -138,20 +219,20 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
         onTap: _onNavTap,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
+            icon: Icon(Icons.home),
+            label: "Home",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
+            icon: Icon(Icons.person),
+            label: "Profile",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
-            label: 'Browse',
+            label: "Browse",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_outlined),
-            label: 'My Listings',
+            icon: Icon(Icons.list_alt),
+            label: "My Listings",
           ),
         ],
       ),
