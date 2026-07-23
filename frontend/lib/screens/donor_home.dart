@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'donor_profile.dart';
-import 'recipient_profile.dart';
+import 'browse_listings.dart';
 
 class DonorHomeScreen extends StatefulWidget {
   const DonorHomeScreen({super.key});
@@ -16,18 +16,24 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
     setState(() => _selectedIndex = index);
 
     if (index == 1) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CreateDonorProfileScreen()),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const CreateDonorProfileScreen(),
+        ),
       );
     } else if (index == 2) {
-      // Placeholder until "create listing" screen exists
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Create Listing coming soon')),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const BrowseListingsScreen(),
+        ),
       );
     } else if (index == 3) {
-      // Placeholder until "my listings" screen exists
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('My Listings coming soon')),
+        const SnackBar(
+          content: Text("My Listings coming soon"),
+        ),
       );
     }
   }
@@ -44,14 +50,85 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Welcome to NeighbourShare!\nUse the menu below to get started.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.black87),
-          ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 20),
+
+            const Icon(
+              Icons.volunteer_activism,
+              size: 90,
+              color: Color(0xFF2E7D32),
+            ),
+
+            const SizedBox(height: 20),
+
+            const Text(
+              "Welcome to NeighbourShare!",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            const Text(
+              "Help reduce food waste by donating surplus food or browse available food donations in your community.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 35),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.search),
+                label: const Text("Browse Listings"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const BrowseListingsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.person),
+                label: const Text("Create Donor Profile"),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CreateDonorProfileScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -69,8 +146,8 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
             label: 'Profile',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_box_outlined),
-            label: 'Create Listing',
+            icon: Icon(Icons.search),
+            label: 'Browse',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.list_alt_outlined),
