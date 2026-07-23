@@ -1,13 +1,13 @@
 ## Files
 
 - **schema.sql** – Creates all database tables and constraints.
-- **test.sql** – Contains sample SQL query for inserting test data.
+- **test.sql** – Contains sample SQL queries for inserting test data.
 
-## Database Connection (For our development phase)
+## Backend API (Development)
 
-1. Open PostgreSQL and create a database named **NeighborShare**.
-2. Use your preferred password 
-3. Open the Query Tool in pgAdmin.
-4. Run **schema.sql** to create the database tables.
-5. Run **test.sql** to insert and test sample data (optional).
-6. Start the Express backend. It connects to PostgreSQL using the settings in `backend/.env`.
+The NeighborShare backend is deployed on Render and connected to a hosted PostgreSQL database.
+
+**Base URL:**
+https://neighborshare-c2vl.onrender.com/
+
+You can test the API using Thunder Client or any testing tool u want.
