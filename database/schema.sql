@@ -1,14 +1,33 @@
 --Donor_profiles--
 
+-- User accounts
+CREATE TABLE user_accounts (
+    account_id SERIAL PRIMARY KEY,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role VARCHAR(20) NOT NULL
+        CHECK (role IN ('Donor', 'Recipient', 'Administrator')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Donor profiles
 CREATE TABLE donor_profiles (
     donor_id SERIAL PRIMARY KEY,
+
+    account_id INTEGER UNIQUE NOT NULL,
+
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     street_address VARCHAR(255) NOT NULL,
     city VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_donor_account
+        FOREIGN KEY (account_id)
+        REFERENCES user_accounts(account_id)
+        ON DELETE CASCADE
 );
 
 --Recipient_profiles--
