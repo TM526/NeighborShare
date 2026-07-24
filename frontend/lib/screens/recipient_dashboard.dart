@@ -222,7 +222,7 @@ class RecipientDashboardScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
@@ -331,7 +331,7 @@ class RecipientDashboardScreen extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
-          backgroundColor: statusColor.withValues(alpha: 0.15),
+          backgroundColor: statusColor.withOpacity(0.15),
           child: Icon(icon, color: statusColor),
         ),
         title: Text(
@@ -344,7 +344,7 @@ class RecipientDashboardScreen extends StatelessWidget {
         ),
         trailing: Chip(
           label: Text(status),
-          backgroundColor: statusColor.withValues(alpha: 0.15),
+          backgroundColor: statusColor.withOpacity(0.15),
           labelStyle: TextStyle(
             color: statusColor,
             fontWeight: FontWeight.bold,

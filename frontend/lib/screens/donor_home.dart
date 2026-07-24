@@ -4,6 +4,8 @@ import 'recipient_profile.dart';
 import 'browse_listings.dart';
 import 'create_listing.dart';
 import 'my_listings.dart';
+import 'admin_route_guard.dart';
+import 'admin_dashboard.dart';
 
 class DonorHomeScreen extends StatefulWidget {
   const DonorHomeScreen({super.key});
@@ -257,6 +259,36 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                               MaterialPageRoute(
                                 builder: (_) =>
                                     const MyListingsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      SizedBox(
+                        height: buttonHeight,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.admin_panel_settings),
+                          label: const Text('Admin'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF2E7D32),
+                            side: const BorderSide(
+                              color: Color(0xFF2E7D32),
+                            ),
+                          ),
+                          onPressed: () {
+                            // Guarded — routes to the Admin Dashboard
+                            // only if AdminSession reports an
+                            // authenticated admin, otherwise falls
+                            // back to AdminLoginScreen.
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AdminRouteGuard(
+                                  child: AdminDashboardScreen(),
+                                ),
                               ),
                             );
                           },

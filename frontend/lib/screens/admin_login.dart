@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/admin_session.dart';
+import 'admin_dashboard.dart';
+
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
 
@@ -69,11 +72,11 @@ Future<void> _handleLogin() async {
       _isSubmitting = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Administrator login successful'),
-        backgroundColor: Color(0xFF2E7D32),
-      ),
+    AdminSession.login();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
     );
   } else if (email == 'user@neighbourshare.com' &&
       password == 'user123') {
