@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'recipient_dashboard.dart';
 
 class CreateRecipientProfileScreen extends StatefulWidget {
   const CreateRecipientProfileScreen({super.key});
@@ -169,10 +170,15 @@ class _CreateRecipientProfileScreenState
                       ),
                     ),
                     onPressed: () {
-                      Navigator.of(context).pop();
                       _resetForm();
+
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => const RecipientDashboardScreen(),
+                        ),
+                      );
                     },
-                    child: const Text('Done'),
+                    child: const Text('Go to Dashboard'),
                   ),
                 ),
               ],
