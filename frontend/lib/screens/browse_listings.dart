@@ -260,21 +260,32 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                                 backgroundColor:
                                 const Color(0xFF2E7D32),
                                 foregroundColor: Colors.white,
+                                disabledBackgroundColor:
+                                    Colors.grey.shade300,
+                                disabledForegroundColor:
+                                    Colors.grey.shade600,
                                 padding:
                                 const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
                               ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                    const RequestFoodScreen(),
-                                  ),
-                                );
-                              },
-                              child: const Text("Request Food"),
+                              onPressed: food["status"] != "Available"
+                                  ? null
+                                  : () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => RequestFoodScreen(
+                                            foodItem: food,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                              child: Text(
+                                food["status"] == "Available"
+                                    ? "Request Food"
+                                    : "Not Available",
+                              ),
                             ),
                           ),
                         ],

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class RequestFoodScreen extends StatefulWidget {
-  const RequestFoodScreen({super.key});
+  final Map<String, String> foodItem;
+
+  const RequestFoodScreen({super.key, required this.foodItem});
 
   @override
   State<RequestFoodScreen> createState() => _RequestFoodScreenState();
@@ -64,13 +66,56 @@ class _RequestFoodScreenState extends State<RequestFoodScreen> {
             key: _formKey,
             child: ListView(
               children: [
-                const Icon(
-                  Icons.volunteer_activism,
-                  size: 80,
-                  color: Color(0xFF2E7D32),
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.fastfood,
+                            color: Color(0xFF2E7D32),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.foodItem["name"] ?? "Food item",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                [
+                                  widget.foodItem["quantity"],
+                                  widget.foodItem["location"],
+                                ].where((v) => v != null && v.isNotEmpty).join(" • "),
+                                style: TextStyle(color: Colors.grey.shade700),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
 
-                const SizedBox(height: 15),
+                const SizedBox(height: 20),
 
                 const Text(
                   "Request a Food Donation",
