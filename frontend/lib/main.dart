@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/donor_profile.dart';
-import 'screens/recipient_profile.dart'; 
+import 'screens/donor_home.dart';
 
 void main() {
   runApp(const NeighbourShareApp());
@@ -53,8 +52,7 @@ class NeighbourShareApp extends StatelessWidget {
           ),
         ),
       ),
-      // home: const CreateDonorProfileScreen(),
-      home: const CreateRecipientProfileScreen(), //Uncomment this line to test the recipient profile screen instead of the donor profile screen 
+      home: const DonorHomeScreen(),
     );
   }
-} 
+}
