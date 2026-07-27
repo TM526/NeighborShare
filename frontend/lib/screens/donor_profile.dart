@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'donor_dashboard.dart';
+
 class CreateDonorProfileScreen extends StatefulWidget {
   const CreateDonorProfileScreen({super.key});
 
@@ -156,7 +158,11 @@ class _CreateDonorProfileScreenState extends State<CreateDonorProfileScreen> {
                     ),
                     onPressed: () {
                       Navigator.of(context).pop();
-                      _resetForm();
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => const DonorDashboardScreen(),
+                        ),
+                      );
                     },
                     child: const Text('Done'),
                   ),
@@ -167,16 +173,6 @@ class _CreateDonorProfileScreenState extends State<CreateDonorProfileScreen> {
         );
       },
     );
-  }
-
-  void _resetForm() {
-    _formKey.currentState?.reset();
-    _fullNameController.clear();
-    _emailController.clear();
-    _phoneController.clear();
-    _streetAddressController.clear();
-    _cityController.clear();
-    _postalCodeController.clear();
   }
 
   void _showHelpTip() {

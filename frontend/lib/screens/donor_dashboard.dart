@@ -1,0 +1,425 @@
+import 'package:flutter/material.dart';
+import 'browse_listings.dart';
+import 'create_listing.dart';
+import 'donor_profile.dart';
+
+class DonorDashboardScreen extends StatelessWidget {
+  const DonorDashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = screenWidth < 400;
+    final bool isLargeScreen = screenWidth >= 700;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Donor Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF2E7D32),
+        foregroundColor: Colors.white,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildWelcomeSection(isSmallScreen),
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 20 : 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  isLargeScreen
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: _buildActionCard(
+                                context: context,
+                                icon: Icons.add_circle_outline,
+                                title: 'Create Listing',
+                                description:
+                                    'Post surplus food for neighbours to request.',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const CreateListingScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildActionCard(
+                                context: context,
+                                icon: Icons.search,
+                                title: 'Browse Listings',
+                                description:
+                                    'See what other donors are sharing nearby.',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const BrowseListingsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildActionCard(
+                                context: context,
+                                icon: Icons.person_outline,
+                                title: 'My Profile',
+                                description:
+                                    'View or update your donor information.',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const CreateDonorProfileScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            _buildActionCard(
+                              context: context,
+                              icon: Icons.add_circle_outline,
+                              title: 'Create Listing',
+                              description:
+                                  'Post surplus food for neighbours to request.',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const CreateListingScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            _buildActionCard(
+                              context: context,
+                              icon: Icons.search,
+                              title: 'Browse Listings',
+                              description:
+                                  'See what other donors are sharing nearby.',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const BrowseListingsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            _buildActionCard(
+                              context: context,
+                              icon: Icons.person_outline,
+                              title: 'My Profile',
+                              description:
+                                  'View or update your donor information.',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const CreateDonorProfileScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+
+                  const SizedBox(height: 28),
+
+                  Text(
+                    'My Listings',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 20 : 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  _buildListingCard(
+                    foodName: 'Vegetable Soup',
+                    quantity: '4 servings',
+                    status: 'Available',
+                    statusColor: Colors.green,
+                    icon: Icons.check_circle_outline,
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildListingCard(
+                    foodName: 'Canned Beans',
+                    quantity: '6 cans',
+                    status: 'Claimed',
+                    statusColor: Colors.orange,
+                    icon: Icons.hourglass_top,
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  Text(
+                    'Donation History',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 20 : 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  _buildEmptyHistoryCard(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: 0,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.search),
+            label: 'Browse',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+        onDestinationSelected: (index) {
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const BrowseListingsScreen(),
+              ),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CreateDonorProfileScreen(),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildWelcomeSection(bool isSmallScreen) {
+    return Container(
+      padding: EdgeInsets.all(isSmallScreen ? 20 : 28),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF2E7D32),
+            Color(0xFF66BB6A),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.volunteer_activism,
+              color: Colors.white,
+              size: isSmallScreen ? 34 : 44,
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome, Donor!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 23,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Share surplus food with your community and track your donations.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String description,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xFF2E7D32),
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 17),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListingCard({
+    required String foodName,
+    required String quantity,
+    required String status,
+    required Color statusColor,
+    required IconData icon,
+  }) {
+    return Card(
+      elevation: 1,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          backgroundColor: statusColor.withOpacity(0.15),
+          child: Icon(icon, color: statusColor),
+        ),
+        title: Text(
+          foodName,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Text('Quantity: $quantity'),
+        ),
+        trailing: Chip(
+          label: Text(status),
+          backgroundColor: statusColor.withOpacity(0.15),
+          labelStyle: TextStyle(
+            color: statusColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyHistoryCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: const Column(
+        children: [
+          Icon(
+            Icons.history,
+            size: 48,
+            color: Colors.grey,
+          ),
+          SizedBox(height: 12),
+          Text(
+            'No completed donations yet',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Completed food donations will appear here.',
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
