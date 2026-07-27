@@ -1,0 +1,306 @@
+const pool = require("../config/db");
+
+const allowedRequestStatuses = [
+    "Pending",
+    "Approved",
+    "Rejected",
+    "Cancelled",
+    "Completed"
+];
+
+const createFoodRequest = async (req, res) => {
+    try {
+        const {
+            listing_id,
+            recipient_id,
+            message
+        } = req.body;
+
+        if (!listing_id || !recipient_id) {
+            return res.status(400).json({
+                message: "Listing ID and recipient ID are required."
+            });
+        }
+
+        const recipientResult = await pool.query(
+            `SELECT recipient_id
+             FROM recipient_profiles
+             WHERE recipient_id = $1`,
+            [recipient_id]
+        );
+
+        if (recipientResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Recipient profile not found."
+            });
+        }
+
+        const listingResult = await pool.query(
+            `SELECT listing_id, status
+             FROM food_listings
+             WHERE listing_id = $1`,
+            [listing_id]
+        );
+
+        if (listingResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Food listing not found."
+            });
+        }
+
+        if (listingResult.rows[0].status !== "Available") {
+            return res.status(409).json({
+                message: "This food listing is no longer available."
+            });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO food_requests
+            (
+                listing_id,
+                recipient_id,
+                message
+            )
+            VALUES ($1, $2, $3)
+            RETURNING *`,
+            [
+                listing_id,
+                recipient_id,
+                message?.trim() || null
+            ]
+        );
+
+        return res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+
+        if (error.code === "23505") {
+            return res.status(409).json({
+                message: "This recipient has already requested this listing."
+            });
+        }
+
+        return res.status(500).json({
+            message: "Error creating food request."
+        });
+    }
+};
+
+const getAllFoodRequests = async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT
+                food_requests.*,
+                food_listings.food_name,
+                recipient_profiles.full_name AS recipient_name
+             FROM food_requests
+             JOIN food_listings
+                ON food_requests.listing_id = food_listings.listing_id
+             JOIN recipient_profiles
+                ON food_requests.recipient_id = recipient_profiles.recipient_id
+             ORDER BY food_requests.request_id ASC`
+        );
+
+        return res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Error retrieving food requests."
+        });
+    }
+};
+
+const getFoodRequestById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await pool.query(
+            `SELECT
+                food_requests.*,
+                food_listings.food_name,
+                recipient_profiles.full_name AS recipient_name
+             FROM food_requests
+             JOIN food_listings
+                ON food_requests.listing_id = food_listings.listing_id
+             JOIN recipient_profiles
+                ON food_requests.recipient_id = recipient_profiles.recipient_id
+             WHERE food_requests.request_id = $1`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: "Food request not found."
+            });
+        }
+
+        return res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Error retrieving food request."
+        });
+    }
+};
+
+const getRequestsByRecipient = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const recipientResult = await pool.query(
+            `SELECT recipient_id
+             FROM recipient_profiles
+             WHERE recipient_id = $1`,
+            [id]
+        );
+
+        if (recipientResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Recipient profile not found."
+            });
+        }
+
+        const result = await pool.query(
+            `SELECT
+                food_requests.*,
+                food_listings.food_name
+             FROM food_requests
+             JOIN food_listings
+                ON food_requests.listing_id = food_listings.listing_id
+             WHERE food_requests.recipient_id = $1
+             ORDER BY food_requests.request_id ASC`,
+            [id]
+        );
+
+        return res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Error retrieving recipient food requests."
+        });
+    }
+};
+
+const updateFoodRequestStatus = async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        const { id } = req.params;
+        const { request_status } = req.body;
+
+        if (!request_status?.trim()) {
+            return res.status(400).json({
+                message: "Request status is required."
+            });
+        }
+
+        const cleanedStatus = request_status.trim();
+
+        if (!allowedRequestStatuses.includes(cleanedStatus)) {
+            return res.status(400).json({
+                message: "Invalid request status."
+            });
+        }
+
+        await client.query("BEGIN");
+
+        const requestResult = await client.query(
+            `UPDATE food_requests
+             SET request_status = $1,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE request_id = $2
+             RETURNING *`,
+            [cleanedStatus, id]
+        );
+
+        if (requestResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+
+            return res.status(404).json({
+                message: "Food request not found."
+            });
+        }
+
+        const request = requestResult.rows[0];
+
+        let listingStatus = null;
+
+        if (cleanedStatus === "Approved") {
+            listingStatus = "Reserved";
+        } else if (cleanedStatus === "Completed") {
+            listingStatus = "Collected";
+        } else if (
+            cleanedStatus === "Rejected" ||
+            cleanedStatus === "Cancelled"
+        ) {
+            listingStatus = "Available";
+        }
+
+        if (listingStatus) {
+            await client.query(
+                `UPDATE food_listings
+                 SET status = $1
+                 WHERE listing_id = $2`,
+                [listingStatus, request.listing_id]
+            );
+        }
+
+        await client.query("COMMIT");
+
+        return res.status(200).json({
+            message: "Food request status updated successfully.",
+            request
+        });
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Error updating food request status."
+        });
+    } finally {
+        client.release();
+    }
+};
+
+const deleteFoodRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await pool.query(
+            `DELETE FROM food_requests
+             WHERE request_id = $1
+             RETURNING *`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: "Food request not found."
+            });
+        }
+
+        return res.status(200).json({
+            message: "Food request deleted successfully.",
+            request: result.rows[0]
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Error deleting food request."
+        });
+    }
+};
+
+module.exports = {
+    createFoodRequest,
+    getAllFoodRequests,
+    getFoodRequestById,
+    getRequestsByRecipient,
+    updateFoodRequestStatus,
+    deleteFoodRequest
+};
