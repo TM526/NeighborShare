@@ -27,11 +27,13 @@ const createListing = async (req, res) => {
             description
         } = req.body;
 
+        const cleanQuantity = String(quantity ?? "").trim();
+
         if (
             !donor_id ||
             !food_name?.trim() ||
             !category?.trim() ||
-            !quantity?.trim() ||
+            !cleanQuantity ||
             !pickup_location?.trim()
         ) {
             return res.status(400).json({
@@ -75,7 +77,7 @@ const createListing = async (req, res) => {
                 donor_id,
                 food_name.trim(),
                 category.trim(),
-                quantity.trim(),
+                cleanQuantity,
                 pickup_location.trim(),
                 description?.trim() || null,
                 "Available"
@@ -193,10 +195,12 @@ const updateListing = async (req, res) => {
             status
         } = req.body;
 
+        const cleanQuantity = String(quantity ?? "").trim();
+
         if (
             !food_name?.trim() ||
             !category?.trim() ||
-            !quantity?.trim() ||
+            !cleanQuantity ||
             !pickup_location?.trim() ||
             !status?.trim()
         ) {
@@ -230,7 +234,7 @@ const updateListing = async (req, res) => {
             [
                 food_name.trim(),
                 category.trim(),
-                quantity.trim(),
+                cleanQuantity,
                 pickup_location.trim(),
                 description?.trim() || null,
                 status.trim(),
