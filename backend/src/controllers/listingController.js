@@ -19,7 +19,7 @@ const allowedStatuses = [
 const createListing = async (req, res) => {
     try {
         const {
-            donor_id,
+            account_id,
             food_name,
             category,
             quantity,
@@ -28,16 +28,19 @@ const createListing = async (req, res) => {
         } = req.body;
 
         const cleanQuantity = String(quantity ?? "").trim();
+        const accountId = Number(account_id);
 
         if (
-            !donor_id ||
+            !Number.isInteger(accountId) ||
+            accountId <= 0 ||
             !food_name?.trim() ||
             !category?.trim() ||
             !cleanQuantity ||
             !pickup_location?.trim()
         ) {
             return res.status(400).json({
-                message: "All required fields must be provided."
+                message:
+                    "Account ID and all required listing fields must be provided."
             });
         }
 
@@ -47,18 +50,22 @@ const createListing = async (req, res) => {
             });
         }
 
+        // Convert account_id into donor_id.
         const donorResult = await pool.query(
             `SELECT donor_id
              FROM donor_profiles
-             WHERE donor_id = $1`,
-            [donor_id]
+             WHERE account_id = $1`,
+            [accountId]
         );
 
         if (donorResult.rows.length === 0) {
             return res.status(404).json({
-                message: "Donor profile not found."
+                message:
+                    "Donor profile not found. Please create a donor profile first."
             });
         }
+
+        const donorId = donorResult.rows[0].donor_id;
 
         const result = await pool.query(
             `INSERT INTO food_listings
@@ -74,7 +81,7 @@ const createListing = async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *`,
             [
-                donor_id,
+                donorId,
                 food_name.trim(),
                 category.trim(),
                 cleanQuantity,
@@ -84,9 +91,12 @@ const createListing = async (req, res) => {
             ]
         );
 
-        return res.status(201).json(result.rows[0]);
+        return res.status(201).json({
+            message: "Food listing created successfully.",
+            listing: result.rows[0]
+        });
     } catch (error) {
-        console.error(error);
+        console.error("Create listing error:", error);
 
         return res.status(500).json({
             message: "Error creating food listing."
@@ -149,13 +159,14 @@ const getListingById = async (req, res) => {
 
 const getListingsByDonor = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id: accountId } = req.params;
 
+        // Find the donor profile for this account
         const donorResult = await pool.query(
             `SELECT donor_id
              FROM donor_profiles
-             WHERE donor_id = $1`,
-            [id]
+             WHERE account_id = $1`,
+            [accountId]
         );
 
         if (donorResult.rows.length === 0) {
@@ -164,15 +175,19 @@ const getListingsByDonor = async (req, res) => {
             });
         }
 
+        const donorId = donorResult.rows[0].donor_id;
+
+        // Get only this donor's listings
         const result = await pool.query(
             `SELECT *
              FROM food_listings
              WHERE donor_id = $1
-             ORDER BY listing_id ASC`,
-            [id]
+             ORDER BY created_at DESC`,
+            [donorId]
         );
 
         return res.status(200).json(result.rows);
+
     } catch (error) {
         console.error(error);
 
