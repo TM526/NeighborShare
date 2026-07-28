@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'donor_profile.dart';
-import 'recipient_profile.dart';
+import 'admin_dashboard.dart';
+import 'admin_route_guard.dart';
 import 'browse_listings.dart';
 import 'create_listing.dart';
+import 'donor_profile.dart';
 import 'my_listings.dart';
-import 'admin_login.dart';
-import 'admin_route_guard.dart';
-import 'admin_dashboard.dart';
+import 'recipient_profile.dart';
 
 class DonorHomeScreen extends StatefulWidget {
   final int? accountId;
@@ -157,15 +156,12 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 10),
-
                       Icon(
                         Icons.volunteer_activism,
                         color: const Color(0xFF2E7D32),
                         size: iconSize,
                       ),
-
                       const SizedBox(height: 20),
-
                       Text(
                         'Welcome to NeighbourShare!',
                         textAlign: TextAlign.center,
@@ -174,9 +170,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       Text(
                         'Help reduce food waste by donating surplus food or '
                         'browse available food donations in your community.',
@@ -186,9 +180,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           color: Colors.black87,
                         ),
                       ),
-
                       SizedBox(height: isSmallScreen ? 25 : 35),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -201,9 +193,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           onPressed: _openBrowseListings,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -216,9 +206,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           onPressed: _openDonorProfile,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -231,9 +219,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           onPressed: _openRecipientProfile,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -246,9 +232,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           onPressed: _openCreateListing,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -261,9 +245,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           onPressed: _openMyListings,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: OutlinedButton.icon(
@@ -291,30 +273,8 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 15),
-
-              SizedBox(
-                height: 55,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.admin_panel_settings),
-                  label: const Text("Administrator"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1B5E20),
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AdminLoginScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(

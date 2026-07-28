@@ -1,5 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'admin_dashboard.dart';
+import 'package:http/http.dart' as http;
 
 import '../services/admin_session.dart';
 import 'admin_dashboard.dart';
@@ -61,38 +63,65 @@ Future<void> _handleLogin() async {
     _isSubmitting = true;
   });
 
-  await Future.delayed(const Duration(seconds: 1));
-
-  final email = _emailController.text.trim().toLowerCase();
-  final password = _passwordController.text;
-
-  if (!mounted) return;
-
-  if (email == 'admin@neighbourshare.com' && password == 'admin123') {
-    setState(() {
-      _isSubmitting = false;
-    });
-
-    AdminSession.login();
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+  try {
+    final response = await http.post(
+      Uri.parse(
+        'https://neighborshare-c2vl.onrender.com/api/accounts/login',
+      ),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'email': _emailController.text.trim().toLowerCase(),
+        'password': _passwordController.text,
+      }),
     );
-  } else if (email == 'user@neighbourshare.com' &&
-      password == 'user123') {
-    setState(() {
-      _isSubmitting = false;
-      _errorMessage =
-          'Access denied. This account does not have administrator permission.';
-    });
 
-    _showAccessDeniedDialog();
-  } else {
+    Map<String, dynamic> responseData = {};
+
+    if (response.body.isNotEmpty) {
+      responseData =
+        jsonDecode(response.body) as Map<String, dynamic>;
+    }
+
+    if (!mounted) return;
+
+    if (response.statusCode == 200) {
+      AdminSession.login();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AdminDashboardScreen(),
+        ),
+      );
+    } else if (response.statusCode == 403) {
+      setState(() {
+        _errorMessage =
+            responseData['message']?.toString() ?? 'Access denied.';
+      });
+
+      _showAccessDeniedDialog();
+    } else {
+      setState(() {
+        _errorMessage =
+            responseData['message']?.toString() ??
+            'Invalid email or password.';
+      });
+    }
+  } catch (error) {
+    if (!mounted) return;
+
     setState(() {
-      _isSubmitting = false;
-      _errorMessage = 'Invalid email or password.';
+      _errorMessage =
+          'Unable to connect to the server. Please try again.';
     });
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 }
 
