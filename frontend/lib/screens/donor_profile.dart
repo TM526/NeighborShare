@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/api_config.dart';
-import 'donor_home.dart';
+import 'donor_dashboard.dart';
 
 class CreateDonorProfileScreen extends StatefulWidget {
   const CreateDonorProfileScreen({
@@ -249,7 +249,7 @@ class _CreateDonorProfileScreenState extends State<CreateDonorProfileScreen> {
                       navigator.pop();
                       navigator.pushAndRemoveUntil(
                         MaterialPageRoute(
-                          builder: (_) => DonorHomeScreen(
+                          builder: (_) => DonorDashboardScreen(
                             accountId: accountId,
                           ),
                         ),
