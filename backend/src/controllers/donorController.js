@@ -1,9 +1,13 @@
 const pool = require("../config/db");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const createDonor = async (req, res) => {
+    let client;
+    let transactionStarted = false;
+
     try {
         const {
-            account_id,
             full_name,
             email,
             phone_number,
@@ -13,7 +17,6 @@ const createDonor = async (req, res) => {
         } = req.body;
 
         if (
-            !account_id ||
             !full_name?.trim() ||
             !email?.trim() ||
             !phone_number?.trim() ||
@@ -22,38 +25,62 @@ const createDonor = async (req, res) => {
             !postal_code?.trim()
         ) {
             return res.status(400).json({
-                message: "Account ID and all profile fields are required."
+                message: "All donor profile fields are required."
             });
         }
 
-        const accountResult = await pool.query(
-            `SELECT account_id, email, role
+        const normalizedEmail = email.trim().toLowerCase();
+
+        client = await pool.connect();
+
+        await client.query("BEGIN");
+        transactionStarted = true;
+
+        // Make sure the email is not already registered.
+        const existingAccount = await client.query(
+            `SELECT account_id
              FROM user_accounts
-             WHERE account_id = $1`,
-            [account_id]
+             WHERE email = $1`,
+            [normalizedEmail]
         );
 
-        if (accountResult.rows.length === 0) {
-            return res.status(404).json({
-                message: "Donor account not found."
+        if (existingAccount.rows.length > 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(409).json({
+                message: "An account with this email already exists."
             });
         }
+
+        /*
+         * Login is not implemented yet, but password_hash is required
+         * by the database. Generate and hash a random temporary value.
+         */
+        const temporaryPassword = crypto.randomBytes(32).toString("hex");
+        const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
+        // PostgreSQL automatically generates account_id.
+        const accountResult = await client.query(
+            `INSERT INTO user_accounts
+            (
+                email,
+                password_hash,
+                role
+            )
+            VALUES ($1, $2, $3)
+            RETURNING account_id, email, role`,
+            [
+                normalizedEmail,
+                passwordHash,
+                "Donor"
+            ]
+        );
 
         const account = accountResult.rows[0];
 
-        if (account.role !== "Donor") {
-            return res.status(403).json({
-                message: "This account is not registered as a donor."
-            });
-        }
-
-        if (account.email !== email.trim().toLowerCase()) {
-            return res.status(400).json({
-                message: "Profile email must match the donor account email."
-            });
-        }
-
-        const result = await pool.query(
+        // Use the generated account_id to create the donor profile.
+        const donorResult = await client.query(
             `INSERT INTO donor_profiles
             (
                 account_id,
@@ -67,9 +94,9 @@ const createDonor = async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *`,
             [
-                account_id,
+                account.account_id,
                 full_name.trim(),
-                email.trim().toLowerCase(),
+                normalizedEmail,
                 phone_number.trim(),
                 street_address.trim(),
                 city.trim(),
@@ -77,30 +104,35 @@ const createDonor = async (req, res) => {
             ]
         );
 
-        return res.status(201).json({
-            message: "Donor profile created and associated with donor account.",
-            donor: result.rows[0]
-        });
+        await client.query("COMMIT");
+        transactionStarted = false;
 
+        return res.status(201).json({
+            message: "Donor account and profile created successfully.",
+            account,
+            donor: donorResult.rows[0]
+        });
     } catch (error) {
-        console.error(error);
+        if (client && transactionStarted) {
+            await client.query("ROLLBACK");
+        }
+
+        console.error("Create donor error:", error);
 
         if (error.code === "23505") {
             return res.status(409).json({
                 message:
-                    "A donor profile already exists for this account or email."
-            });
-        }
-
-        if (error.code === "23503") {
-            return res.status(400).json({
-                message: "The provided donor account does not exist."
+                    "An account or donor profile with this email already exists."
             });
         }
 
         return res.status(500).json({
-            message: "Error creating donor profile."
+            message: "Error creating donor account and profile."
         });
+    } finally {
+        if (client) {
+            client.release();
+        }
     }
 };
 
@@ -247,7 +279,6 @@ const deleteDonor = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     createDonor,
