@@ -4,6 +4,7 @@ import 'recipient_profile.dart';
 import 'browse_listings.dart';
 import 'create_listing.dart';
 import 'my_listings.dart';
+import 'admin_login.dart';
 
 class DonorHomeScreen extends StatefulWidget {
   const DonorHomeScreen({super.key});
@@ -203,6 +204,28 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => const MyListingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                height: 55,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.admin_panel_settings),
+                  label: const Text("Administrator"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1B5E20),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AdminLoginScreen(),
                       ),
                     );
                   },

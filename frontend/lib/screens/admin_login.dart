@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'admin_dashboard.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -61,9 +62,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     // Placeholder check — swap for real API call to POST /api/admin/login
     if (email == 'admin@neighbourshare.com' && password == 'admin123') {
       if (!mounted) return;
+
       setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login successful')),
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const AdminDashboard(),
+        ),
       );
     } else {
       if (!mounted) return;
