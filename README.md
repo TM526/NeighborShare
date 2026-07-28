@@ -4,3 +4,7 @@ NeighbourShare is a cross-platform mobile application designed to reduce food in
 Backend URL: https://neighborshare-c2vl.onrender.com/
 
 Frontend URL: https://neighborshare-frontend.onrender.com/
+
+Admin Login:
+Email: admin@neighbourshare.com
+Password: admin123
