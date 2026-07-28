@@ -10,6 +10,15 @@ import 'admin_login.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
+import '../services/admin_session.dart';
+import 'admin_login.dart';
+
+/// Placeholder landing screen behind [AdminRouteGuard], standing in until
+/// the full dashboard layout (moderation panel, reports, analytics) is
+/// built out. Exists so role-based access control has a real screen to
+/// protect and can be demonstrated end-to-end.
+class AdminDashboardScreen extends StatelessWidget {
+  const AdminDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
