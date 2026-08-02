@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
-import 'donor_profile.dart';
-import 'recipient_profile.dart';
+
+import 'admin_dashboard.dart';
+import 'admin_route_guard.dart';
 import 'browse_listings.dart';
 import 'create_listing.dart';
+import 'donor_profile.dart';
 import 'my_listings.dart';
-import 'admin_route_guard.dart';
-import 'admin_dashboard.dart';
+import 'recipient_profile.dart';
 
 class DonorHomeScreen extends StatefulWidget {
-  const DonorHomeScreen({super.key});
+  final int? accountId;
+
+  const DonorHomeScreen({
+    super.key,
+    this.accountId,
+  });
 
   @override
   State<DonorHomeScreen> createState() => _DonorHomeScreenState();
@@ -17,37 +23,71 @@ class DonorHomeScreen extends StatefulWidget {
 class _DonorHomeScreenState extends State<DonorHomeScreen> {
   int _selectedIndex = 0;
 
+  void _openDonorProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CreateDonorProfileScreen(),
+      ),
+    );
+  }
+
+  void _openRecipientProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CreateRecipientProfileScreen(),
+      ),
+    );
+  }
+
+  void _openBrowseListings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const BrowseListingsScreen(),
+      ),
+    );
+  }
+
+  void _openCreateListing() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateListingScreen(
+          accountId: widget.accountId,
+        ),
+      ),
+    );
+  }
+
+  void _openMyListings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MyListingsScreen(
+          accountId: widget.accountId,
+        ),
+      ),
+    );
+  }
+
   void _onNavTap(int index) {
     setState(() {
       _selectedIndex = index;
     });
 
     switch (index) {
+      case 0:
+        break;
       case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const CreateDonorProfileScreen(),
-          ),
-        );
+        _openDonorProfile();
         break;
-
       case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const BrowseListingsScreen(),
-          ),
-        );
+        _openBrowseListings();
         break;
-
       case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const MyListingsScreen(),
-          ),
-        );
+        _openMyListings();
         break;
     }
   }
@@ -111,22 +151,17 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
               ),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 600,
-                  ),
+                  constraints: const BoxConstraints(maxWidth: 600),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 10),
-
                       Icon(
                         Icons.volunteer_activism,
                         color: const Color(0xFF2E7D32),
                         size: iconSize,
                       ),
-
                       const SizedBox(height: 20),
-
                       Text(
                         'Welcome to NeighbourShare!',
                         textAlign: TextAlign.center,
@@ -135,9 +170,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       Text(
                         'Help reduce food waste by donating surplus food or '
                         'browse available food donations in your community.',
@@ -147,11 +180,7 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                           color: Colors.black87,
                         ),
                       ),
-
-                      SizedBox(
-                        height: isSmallScreen ? 25 : 35,
-                      ),
-
+                      SizedBox(height: isSmallScreen ? 25 : 35),
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -161,20 +190,10 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                             backgroundColor: const Color(0xFF2E7D32),
                             foregroundColor: Colors.white,
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const BrowseListingsScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _openBrowseListings,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -184,20 +203,10 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                             backgroundColor: const Color(0xFF388E3C),
                             foregroundColor: Colors.white,
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const CreateDonorProfileScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _openDonorProfile,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -207,20 +216,10 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                             backgroundColor: const Color(0xFF2E7D32),
                             foregroundColor: Colors.white,
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const CreateRecipientProfileScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _openRecipientProfile,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -230,20 +229,10 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                             backgroundColor: const Color(0xFF43A047),
                             foregroundColor: Colors.white,
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const CreateListingScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _openCreateListing,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: ElevatedButton.icon(
@@ -253,20 +242,10 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                             backgroundColor: const Color(0xFF66BB6A),
                             foregroundColor: Colors.white,
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const MyListingsScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _openMyListings,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
                       SizedBox(
                         height: buttonHeight,
                         child: OutlinedButton.icon(
@@ -279,10 +258,6 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
                             ),
                           ),
                           onPressed: () {
-                            // Guarded — routes to the Admin Dashboard
-                            // only if AdminSession reports an
-                            // authenticated admin, otherwise falls
-                            // back to AdminLoginScreen.
                             Navigator.push(
                               context,
                               MaterialPageRoute(
