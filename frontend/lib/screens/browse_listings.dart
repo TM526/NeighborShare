@@ -58,6 +58,27 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     super.dispose();
   }
 
+  void _requestFood(Map<String, String> food) {
+    if (food["status"] != "Available") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "This food listing is no longer available.",
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RequestFoodScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = foodListings.where((food) {
@@ -66,7 +87,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
           .contains(_searchController.text.toLowerCase());
 
       final matchesCategory =
-          selectedCategory == "All" || food["category"] == selectedCategory;
+          selectedCategory == "All" ||
+              food["category"] == selectedCategory;
 
       return matchesSearch && matchesCategory;
     }).toList();
@@ -80,6 +102,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             Container(
               width: double.infinity,
               color: Colors.green.shade50,
@@ -102,6 +125,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
               ),
             ),
 
+            // Search
             Padding(
               padding: const EdgeInsets.all(16),
               child: TextField(
@@ -117,20 +141,31 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
               ),
             ),
 
+            // Categories
             SizedBox(
               height: 45,
               child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
                   final category = categories[index];
+                  final isSelected =
+                      selectedCategory == category;
 
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
                       label: Text(category),
-                      selected: selectedCategory == category,
-                      selectedColor: Colors.green.shade200,
+                      selected: isSelected,
+                      selectedColor:
+                      const Color(0xFF2E7D32),
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
                       onSelected: (_) {
                         setState(() {
                           selectedCategory = category;
@@ -144,144 +179,215 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
 
             const SizedBox(height: 10),
 
+            // Listings
             Expanded(
               child: filtered.isEmpty
-                  ? const Center(
-                child: Text(
-                  "No food listings found.",
-                  style: TextStyle(fontSize: 18),
-                ),
-              )
+                  ? _buildEmptyState()
                   : ListView.builder(
+                padding: const EdgeInsets.all(16),
                 itemCount: filtered.length,
                 itemBuilder: (context, index) {
                   final food = filtered[index];
 
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  food["name"]!,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const Icon(
-                                Icons.favorite_border,
-                                color: Colors.red,
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.category,
-                                color: Colors.green,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(food["category"]!),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.inventory_2,
-                                color: Colors.orange,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(food["quantity"]!),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.location_on,
-                                color: Colors.red,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(food["location"]!),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today,
-                                color: Colors.blue,
-                              ),
-                              SizedBox(width: 8),
-                              Text("Available Today"),
-                            ],
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          Chip(
-                            label: Text(food["status"]!),
-                            backgroundColor:
-                            food["status"] == "Available"
-                                ? Colors.green.shade100
-                                : Colors.orange.shade100,
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                const Color(0xFF2E7D32),
-                                foregroundColor: Colors.white,
-                                padding:
-                                const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                    const RequestFoodScreen(),
-                                  ),
-                                );
-                              },
-                              child: const Text("Request Food"),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildFoodCard(food);
                 },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFoodCard(Map<String, String> food) {
+    final isAvailable = food["status"] == "Available";
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Food title
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.fastfood,
+                    color: Color(0xFF2E7D32),
+                    size: 28,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        food["name"]!,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        food["category"]!,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isAvailable
+                        ? Colors.green.shade100
+                        : Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    food["status"]!,
+                    style: TextStyle(
+                      color: isAvailable
+                          ? Colors.green.shade800
+                          : Colors.orange.shade800,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 18),
+
+            const Divider(),
+
+            const SizedBox(height: 12),
+
+            // Quantity
+            Row(
+              children: [
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  color: Color(0xFF2E7D32),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  "Quantity: ${food["quantity"]}",
+                  style: const TextStyle(
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // Location
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: Color(0xFF2E7D32),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Location: ${food["location"]}",
+                    style: const TextStyle(
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 18),
+
+            // Request button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: isAvailable
+                    ? () => _requestFood(food)
+                    : null,
+                icon: const Icon(Icons.volunteer_activism),
+                label: Text(
+                  isAvailable
+                      ? "Request Food"
+                      : "Listing Reserved",
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                  const Color(0xFF2E7D32),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor:
+                  Colors.grey.shade300,
+                  disabledForegroundColor:
+                  Colors.grey.shade600,
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                    BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 80,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "No Listings Found",
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Try another search term or category.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade600,
               ),
             ),
           ],

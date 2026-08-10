@@ -15,6 +15,7 @@ class AdminDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F5),
+
       appBar: AppBar(
         backgroundColor: Colors.green.shade700,
         elevation: 0,
@@ -27,6 +28,9 @@ class AdminDashboard extends StatelessWidget {
         ),
       ),
 
+      // =========================
+      // DRAWER
+      // =========================
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -48,7 +52,9 @@ class AdminDashboard extends StatelessWidget {
                       color: Colors.green,
                     ),
                   ),
+
                   SizedBox(height: 12),
+
                   Text(
                     "Administrator",
                     style: TextStyle(
@@ -57,6 +63,7 @@ class AdminDashboard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   Text(
                     "NeighbourShare",
                     style: TextStyle(
@@ -67,6 +74,7 @@ class AdminDashboard extends StatelessWidget {
               ),
             ),
 
+            // Dashboard
             _drawerItem(
               context,
               Icons.dashboard,
@@ -74,13 +82,15 @@ class AdminDashboard extends StatelessWidget {
               null,
             ),
 
+            // Reports
             _drawerItem(
               context,
               Icons.bar_chart,
               "Reports",
-              const ReportsPage(),
+              const ReportsScreen(),
             ),
 
+            // Flagged Listings
             _drawerItem(
               context,
               Icons.flag,
@@ -88,6 +98,7 @@ class AdminDashboard extends StatelessWidget {
               const FlaggedListingsPage(),
             ),
 
+            // User Information
             _drawerItem(
               context,
               Icons.people,
@@ -95,6 +106,7 @@ class AdminDashboard extends StatelessWidget {
               const UserInformationPage(),
             ),
 
+            // Feedback
             _drawerItem(
               context,
               Icons.feedback,
@@ -102,6 +114,7 @@ class AdminDashboard extends StatelessWidget {
               const FeedbackPage(),
             ),
 
+            // Order History
             _drawerItem(
               context,
               Icons.history,
@@ -109,6 +122,7 @@ class AdminDashboard extends StatelessWidget {
               const OrderHistoryPage(),
             ),
 
+            // Incident Reports
             _drawerItem(
               context,
               Icons.description,
@@ -118,8 +132,12 @@ class AdminDashboard extends StatelessWidget {
 
             const Divider(),
 
+            // Logout
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
+              leading: const Icon(
+                Icons.logout,
+                color: Colors.red,
+              ),
               title: const Text("Logout"),
               onTap: () {
                 Navigator.pushReplacement(
@@ -134,15 +152,20 @@ class AdminDashboard extends StatelessWidget {
         ),
       ),
 
+      // =========================
+      // DASHBOARD BODY
+      // =========================
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Text(
               "Welcome, Admin 👋",
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -155,6 +178,9 @@ class AdminDashboard extends StatelessWidget {
 
             const SizedBox(height: 25),
 
+            // =========================
+            // STATISTICS ROW 1
+            // =========================
             Row(
               children: [
                 Expanded(
@@ -165,7 +191,9 @@ class AdminDashboard extends StatelessWidget {
                     Colors.blue,
                   ),
                 ),
+
                 const SizedBox(width: 15),
+
                 Expanded(
                   child: _statCard(
                     "Listings",
@@ -179,6 +207,9 @@ class AdminDashboard extends StatelessWidget {
 
             const SizedBox(height: 15),
 
+            // =========================
+            // STATISTICS ROW 2
+            // =========================
             Row(
               children: [
                 Expanded(
@@ -189,7 +220,9 @@ class AdminDashboard extends StatelessWidget {
                     Colors.red,
                   ),
                 ),
+
                 const SizedBox(width: 15),
+
                 Expanded(
                   child: _statCard(
                     "Feedback",
@@ -203,6 +236,9 @@ class AdminDashboard extends StatelessWidget {
 
             const SizedBox(height: 30),
 
+            // =========================
+            // QUICK ACTIONS
+            // =========================
             const Text(
               "Quick Actions",
               style: TextStyle(
@@ -221,15 +257,16 @@ class AdminDashboard extends StatelessWidget {
               mainAxisSpacing: 15,
               childAspectRatio: 1.1,
               children: [
-
+                // Reports
                 _actionCard(
                   context,
                   Icons.bar_chart,
                   "Generate Reports",
                   Colors.blue,
-                  const ReportsPage(),
+                  const ReportsScreen(),
                 ),
 
+                // Flagged Listings
                 _actionCard(
                   context,
                   Icons.flag,
@@ -238,6 +275,7 @@ class AdminDashboard extends StatelessWidget {
                   const FlaggedListingsPage(),
                 ),
 
+                // Users
                 _actionCard(
                   context,
                   Icons.people,
@@ -246,6 +284,7 @@ class AdminDashboard extends StatelessWidget {
                   const UserInformationPage(),
                 ),
 
+                // Feedback
                 _actionCard(
                   context,
                   Icons.feedback,
@@ -254,6 +293,7 @@ class AdminDashboard extends StatelessWidget {
                   const FeedbackPage(),
                 ),
 
+                // Order History
                 _actionCard(
                   context,
                   Icons.history,
@@ -262,6 +302,7 @@ class AdminDashboard extends StatelessWidget {
                   const OrderHistoryPage(),
                 ),
 
+                // Incident Reports
                 _actionCard(
                   context,
                   Icons.description,
@@ -276,120 +317,146 @@ class AdminDashboard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _drawerItem(
-      BuildContext context,
-      IconData icon,
-      String title,
-      Widget? page,
-      ) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      onTap: () {
-        Navigator.pop(context);
+// =====================================================
+// DRAWER ITEM
+// =====================================================
 
-        if (page != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => page,
-            ),
-          );
-        }
-      },
-    );
-  }
+Widget _drawerItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Widget? page,
+    ) {
+  return ListTile(
+    leading: Icon(icon),
+    title: Text(title),
+    onTap: () {
+      Navigator.pop(context);
 
-  Widget _statCard(
-      String title,
-      String value,
-      IconData icon,
-      Color color,
-      ) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 6,
-            color: Colors.black12,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 35),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(title),
-        ],
-      ),
-    );
-  }
-
-  Widget _actionCard(
-      BuildContext context,
-      IconData icon,
-      String title,
-      Color color,
-      Widget page,
-      ) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: () {
+      if (page != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => page,
           ),
         );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 5,
-            ),
-          ],
+      }
+    },
+  );
+}
+
+// =====================================================
+// STAT CARD
+// =====================================================
+
+Widget _statCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    ) {
+  return Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      boxShadow: const [
+        BoxShadow(
+          blurRadius: 6,
+          color: Colors.black12,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: color.withValues(alpha: 0.15),
-              child: Icon(
-                icon,
-                color: color,
-                size: 30,
-              ),
-            ),
-            const SizedBox(height: 15),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
+      ],
+    ),
+    child: Column(
+      children: [
+        Icon(
+          icon,
+          color: color,
+          size: 35,
         ),
+
+        const SizedBox(height: 10),
+
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        Text(title),
+      ],
+    ),
+  );
+}
+
+// =====================================================
+// ACTION CARD
+// =====================================================
+
+Widget _actionCard(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Color color,
+    Widget page,
+    ) {
+  return InkWell(
+    borderRadius: BorderRadius.circular(18),
+
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => page,
+        ),
+      );
+    },
+
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 5,
+          ),
+        ],
       ),
-    );
-  }
+
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: color.withOpacity(0.15),
+            child: Icon(
+              icon,
+              color: color,
+              size: 30,
+            ),
+          ),
+
+          const SizedBox(height: 15),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+            ),
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

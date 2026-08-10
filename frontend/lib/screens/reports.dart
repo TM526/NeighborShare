@@ -1,94 +1,497 @@
 import 'package:flutter/material.dart';
 
-class ReportsPage extends StatelessWidget {
-const ReportsPage({super.key});
+class ReportsScreen extends StatefulWidget {
+  const ReportsScreen({super.key});
 
-@override
-Widget build(BuildContext context) {
-return Scaffold(
-appBar: AppBar(
-title: const Text("Reports"),
-backgroundColor: Colors.green,
-),
-body: Padding(
-padding: const EdgeInsets.all(20),
-child: ListView(
-children: [
-_reportCard(
-"Daily Activity Report",
-"View platform activity for today.",
-Icons.today,
-Colors.blue,
-),
-_reportCard(
-"Weekly Report",
-"Summary of weekly donations and requests.",
-Icons.calendar_view_week,
-Colors.orange,
-),
-_reportCard(
-"Monthly Report",
-"Monthly statistics and analytics.",
-Icons.calendar_month,
-Colors.green,
-),
-_reportCard(
-"Donation Report",
-"Track food donations across the platform.",
-Icons.volunteer_activism,
-Colors.red,
-),
-_reportCard(
-"User Report",
-"Review user registrations and activities.",
-Icons.people,
-Colors.purple,
-),
-_reportCard(
-"Flagged Listings Report",
-"Review listings reported by users.",
-Icons.flag,
-Colors.deepOrange,
-),
-],
-),
-),
-);
+  @override
+  State<ReportsScreen> createState() => _ReportsScreenState();
 }
 
-Widget _reportCard(
-String title,
-String subtitle,
-IconData icon,
-Color color,
-) {
-return Card(
-margin: const EdgeInsets.only(bottom: 16),
-elevation: 4,
-shape: RoundedRectangleBorder(
-borderRadius: BorderRadius.circular(15),
-),
-child: ListTile(
-contentPadding: const EdgeInsets.all(18),
-leading: CircleAvatar(
-backgroundColor: color.withOpacity(.15),
-child: Icon(
-icon,
-color: color,
-),
-),
-title: Text(
-title,
-style: const TextStyle(
-fontWeight: FontWeight.bold,
-),
-),
-subtitle: Padding(
-padding: const EdgeInsets.only(top: 6),
-child: Text(subtitle),
-),
-trailing: const Icon(Icons.arrow_forward_ios),
-),
-);
-}
+class _ReportsScreenState extends State<ReportsScreen> {
+  String selectedPeriod = "Weekly";
+
+  final Map<String, Map<String, String>> reportData = {
+    "Daily": {
+      "donations": "8",
+      "users": "5",
+      "requests": "12",
+      "listings": "6",
+    },
+    "Weekly": {
+      "donations": "24",
+      "users": "18",
+      "requests": "32",
+      "listings": "15",
+    },
+    "Monthly": {
+      "donations": "96",
+      "users": "65",
+      "requests": "128",
+      "listings": "48",
+    },
+  };
+
+  Map<String, String> get currentData {
+    return reportData[selectedPeriod]!;
+  }
+
+  void _refreshReports() {
+    setState(() {});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Report data refreshed successfully."),
+        backgroundColor: Color(0xFF2E7D32),
+      ),
+    );
+  }
+
+  void _openReport(String reportName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("$reportName report selected."),
+        backgroundColor: const Color(0xFF2E7D32),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Reports"),
+        backgroundColor: const Color(0xFF2E7D32),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: _refreshReports,
+            tooltip: "Refresh Reports",
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            _refreshReports();
+          },
+          child: ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              _buildHeader(),
+
+              const SizedBox(height: 22),
+
+              _buildPeriodSelector(),
+
+              const SizedBox(height: 22),
+
+              const Text(
+                "Platform Overview",
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              _buildStatisticsGrid(),
+
+              const SizedBox(height: 28),
+
+              const Text(
+                "Available Reports",
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              _buildReportCard(
+                icon: Icons.people_alt_outlined,
+                title: "User Activity Report",
+                description:
+                "View user activity and engagement across the platform.",
+                value: currentData["users"]!,
+                label: "Active Users",
+                onTap: () {
+                  _openReport("User Activity");
+                },
+              ),
+
+              _buildReportCard(
+                icon: Icons.volunteer_activism_outlined,
+                title: "Donation Activity Report",
+                description:
+                "Review food donations and donation activity.",
+                value: currentData["donations"]!,
+                label: "Donations",
+                onTap: () {
+                  _openReport("Donation Activity");
+                },
+              ),
+
+              _buildReportCard(
+                icon: Icons.restaurant_menu_outlined,
+                title: "Food Listing Report",
+                description:
+                "Review food listings created and their current activity.",
+                value: currentData["listings"]!,
+                label: "Listings",
+                onTap: () {
+                  _openReport("Food Listing");
+                },
+              ),
+
+              _buildReportCard(
+                icon: Icons.assignment_outlined,
+                title: "Request Activity Report",
+                description:
+                "Review recipient requests and request activity.",
+                value: currentData["requests"]!,
+                label: "Requests",
+                onTap: () {
+                  _openReport("Request Activity");
+                },
+              ),
+
+              _buildReportCard(
+                icon: Icons.flag_outlined,
+                title: "Flagged Listings Report",
+                description:
+                "Review listings that have been reported by users.",
+                value: "4",
+                label: "Flagged",
+                onTap: () {
+                  _openReport("Flagged Listings");
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              SizedBox(
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: _refreshReports,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text(
+                    "Refresh Report Data",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              _buildInformationCard(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.analytics_outlined,
+            size: 42,
+            color: Color(0xFF2E7D32),
+          ),
+          SizedBox(height: 12),
+          Text(
+            "Platform Reports",
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            "Monitor platform usage, donations, users, requests, and listing activity.",
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Report Period",
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 45,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _periodChip("Daily"),
+              const SizedBox(width: 8),
+              _periodChip("Weekly"),
+              const SizedBox(width: 8),
+              _periodChip("Monthly"),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _periodChip(String period) {
+    final isSelected = selectedPeriod == period;
+
+    return ChoiceChip(
+      label: Text(period),
+      selected: isSelected,
+      selectedColor: const Color(0xFF2E7D32),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.black87,
+        fontWeight: FontWeight.w600,
+      ),
+      onSelected: (_) {
+        setState(() {
+          selectedPeriod = period;
+        });
+      },
+    );
+  }
+
+  Widget _buildStatisticsGrid() {
+    return GridView.count(
+      crossAxisCount: 2,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 1.45,
+      children: [
+        _statCard(
+          icon: Icons.volunteer_activism,
+          title: "Donations",
+          value: currentData["donations"]!,
+        ),
+        _statCard(
+          icon: Icons.people,
+          title: "Users",
+          value: currentData["users"]!,
+        ),
+        _statCard(
+          icon: Icons.assignment,
+          title: "Requests",
+          value: currentData["requests"]!,
+        ),
+        _statCard(
+          icon: Icons.restaurant,
+          title: "Listings",
+          value: currentData["listings"]!,
+        ),
+      ],
+    );
+  }
+
+  Widget _statCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: const Color(0xFF2E7D32),
+              size: 28,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportCard({
+    required IconData icon,
+    required String title,
+    required String description,
+    required String value,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 14),
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(17),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xFF2E7D32),
+                  size: 28,
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              Column(
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E7D32),
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInformationCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.blue.shade100,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.blue.shade700,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "Report figures shown here are sample interface data. "
+                  "They can be connected to the platform database when "
+                  "the reporting backend is implemented.",
+              style: TextStyle(
+                color: Colors.blue.shade900,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
