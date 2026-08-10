@@ -295,12 +295,74 @@ const deleteFoodRequest = async (req, res) => {
         });
     }
 };
+const getRequestsByDonor = async (req, res) => {
+    try {
+        const { accountId } = req.params;
+
+        // Get donor_id from account_id
+        const donorResult = await pool.query(
+            `SELECT donor_id
+             FROM donor_profiles
+             WHERE account_id = $1`,
+            [accountId]
+        );
+
+        if (donorResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Donor profile not found."
+            });
+        }
+
+        const donorId = donorResult.rows[0].donor_id;
+
+        // Get all requests for this donor's listings
+        const result = await pool.query(
+            `SELECT
+                fr.request_id,
+                fr.listing_id,
+                fr.message,
+                fr.request_status,
+                fr.requested_at,
+
+                fl.food_name,
+                fl.quantity,
+                fl.pickup_location,
+
+                rp.recipient_id,
+                rp.full_name AS recipient_name,
+                rp.phone_number
+
+             FROM food_requests fr
+
+             JOIN food_listings fl
+               ON fr.listing_id = fl.listing_id
+
+             JOIN recipient_profiles rp
+               ON fr.recipient_id = rp.recipient_id
+
+             WHERE fl.donor_id = $1
+
+             ORDER BY fr.requested_at DESC`,
+            [donorId]
+        );
+
+        res.status(200).json(result.rows);
+
+    } catch (err) {
+        console.error(err);
+
+        res.status(500).json({
+            message: "Error retrieving donor requests."
+        });
+    }
+};
 
 module.exports = {
     createFoodRequest,
     getAllFoodRequests,
     getFoodRequestById,
     getRequestsByRecipient,
+    getRequestsByDonor,
     updateFoodRequestStatus,
     deleteFoodRequest
 };
