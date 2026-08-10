@@ -8,6 +8,7 @@ import 'browse_listings.dart';
 import 'create_listing.dart';
 import 'donor_profile.dart';
 import 'my_listings.dart';
+import 'request_review.dart';
 
 class DonorDashboardScreen extends StatefulWidget {
   final int? accountId;
@@ -210,6 +211,8 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
                           children: [
                             Expanded(child: _buildCreateListingCard()),
                             const SizedBox(width: 16),
+                            Expanded(child: _buildRequestsCard()),
+                            const SizedBox(width: 16),
                             Expanded(child: _buildBrowseListingsCard()),
                             const SizedBox(width: 16),
                             Expanded(child: _buildMyProfileCard()),
@@ -218,6 +221,8 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
                       : Column(
                           children: [
                             _buildCreateListingCard(),
+                            const SizedBox(height: 14),
+                            _buildRequestsCard(),
                             const SizedBox(height: 14),
                             _buildBrowseListingsCard(),
                             const SizedBox(height: 14),
@@ -562,6 +567,22 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
           ),
         );
         _fetchListings();
+      },
+    );
+  }
+
+  Widget _buildRequestsCard() {
+    return _buildActionCard(
+      icon: Icons.inbox_outlined,
+      title: 'Requests',
+      description: 'Review and respond to food requests from recipients.',
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RequestReviewScreen(accountId: widget.accountId),
+          ),
+        );
       },
     );
   }

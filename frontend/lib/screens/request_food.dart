@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/api_config.dart';
+import 'claim_confirmation.dart';
 
 class RequestFoodScreen extends StatefulWidget {
   final Map<String, String> foodItem;
@@ -127,7 +128,16 @@ class _RequestFoodScreenState extends State<RequestFoodScreen> {
       });
 
       if (response.statusCode == 201) {
-        await _showSuccessDialog();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => ClaimConfirmationScreen(
+              foodItem: widget.foodItem,
+              requesterName: _nameController.text,
+              phoneNumber: _phoneController.text,
+              pickupTime: _pickupTime,
+            ),
+          ),
+        );
         return;
       }
 
@@ -148,42 +158,6 @@ class _RequestFoodScreenState extends State<RequestFoodScreen> {
 
       debugPrint('Submit food request error: $error');
     }
-  }
-
-  Future<void> _showSuccessDialog() async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          icon: const Icon(
-            Icons.check_circle,
-            color: Color(0xFF2E7D32),
-            size: 60,
-          ),
-          title: const Text('Request Submitted'),
-          content: const Text(
-            'Your food request was saved successfully.',
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                ),
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  Navigator.of(context).pop(true);
-                },
-                child: const Text('Back to Listings'),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _showError(String message) {
