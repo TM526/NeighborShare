@@ -1,10 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-
-import '../services/api_config.dart';
-import 'recipient_dashboard.dart';
 
 class CreateRecipientProfileScreen extends StatefulWidget {
   const CreateRecipientProfileScreen({super.key});
@@ -107,60 +101,13 @@ class _CreateRecipientProfileScreenState
 
     setState(() => _isSubmitting = true);
 
-    try {
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/recipients'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'full_name': _fullNameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone_number': _phoneController.text.trim(),
-          'street_address': _streetAddressController.text.trim(),
-          'city': _cityController.text.trim(),
-          'postal_code': _postalCodeController.text.trim(),
-          'dietary_preference': _selectedDietaryPreference,
-          'allergies': _allergiesController.text.trim().isEmpty
-              ? null
-              : _allergiesController.text.trim(),
-        }),
-      );
+    await Future.delayed(const Duration(seconds: 2));
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      setState(() => _isSubmitting = false);
+    setState(() => _isSubmitting = false);
 
-      if (response.statusCode == 201) {
-        _showSuccessDialog();
-      } else {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        _showErrorSnackBar(
-          body['message'] as String? ?? 'Failed to create recipient profile.',
-        );
-      }
-    } catch (error) {
-      if (!mounted) return;
-
-      setState(() => _isSubmitting = false);
-
-      _showErrorSnackBar(
-        'Could not reach the server. Make sure the backend is running.',
-      );
-    }
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+    _showSuccessDialog();
   }
 
   void _showSuccessDialog() {
@@ -222,15 +169,10 @@ class _CreateRecipientProfileScreenState
                       ),
                     ),
                     onPressed: () {
+                      Navigator.of(context).pop();
                       _resetForm();
-
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => const RecipientDashboardScreen(),
-                        ),
-                      );
                     },
-                    child: const Text('Go to Dashboard'),
+                    child: const Text('Done'),
                   ),
                 ),
               ],

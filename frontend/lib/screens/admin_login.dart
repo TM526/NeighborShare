@@ -92,7 +92,7 @@ Future<void> _handleLogin() async {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => const AdminDashboardScreen(),
+          builder: (_) => const AdminDashboard(),
         ),
       );
     } else if (response.statusCode == 403) {

@@ -37,7 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # HTTP client for calling the NeighbourShare backend API.
-  http: ^1.2.2
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
