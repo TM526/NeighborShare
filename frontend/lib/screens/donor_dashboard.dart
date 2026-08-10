@@ -10,6 +10,12 @@ import 'donor_profile.dart';
 import 'my_listings.dart';
 import 'request_review.dart';
 
+// Tracks which pending request IDs this donor has already been notified
+// about. Kept at module level (not on State) so it survives navigating away
+// from and back to the dashboard, which destroys and recreates the State.
+final Set<int> _seenDonorRequestIds = {};
+bool _donorRequestsBaselineSet = false;
+
 class DonorDashboardScreen extends StatefulWidget {
   final int? accountId;
 
@@ -28,6 +34,293 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
   void initState() {
     super.initState();
     _fetchListings();
+    _checkForNewRequests();
+  }
+
+  Future<void> _refreshDashboard() async {
+    await _fetchListings();
+    await _checkForNewRequests();
+  }
+
+  Future<void> _checkForNewRequests() async {
+    final accountId = widget.accountId;
+
+    if (accountId == null) return;
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$apiBaseUrl/requests/donor/$accountId'),
+            headers: const {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (!mounted || response.statusCode != 200) return;
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! List) return;
+
+      final requests = decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      final pending = requests
+          .where((r) => (r['request_status'] ?? '').toString() == 'Pending')
+          .toList();
+
+      final newOnes = _donorRequestsBaselineSet
+          ? pending
+              .where(
+                (r) =>
+                    r['request_id'] is int &&
+                    !_seenDonorRequestIds.contains(r['request_id']),
+              )
+              .toList()
+          : <Map<String, dynamic>>[];
+
+      for (final r in pending) {
+        final id = r['request_id'];
+        if (id is int) _seenDonorRequestIds.add(id);
+      }
+      _donorRequestsBaselineSet = true;
+
+      if (newOnes.isNotEmpty && mounted) {
+        _showRequestNotification(newOnes.first, newOnes.length - 1);
+      }
+    } catch (error) {
+      debugPrint('Check for new requests error: $error');
+    }
+  }
+
+  void _showRequestNotification(Map<String, dynamic> request, int extraCount) {
+    final requestId = request['request_id'];
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 8),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        padding: EdgeInsets.zero,
+        content: _buildRequestNotificationCard(
+          requestId: requestId is int ? requestId : null,
+          recipientName:
+              _readValue(request, 'recipient_name', fallback: 'Someone'),
+          foodName: _readValue(request, 'food_name', fallback: 'your item'),
+          quantity: _readValue(request, 'quantity', fallback: ''),
+          message: _readValue(request, 'message', fallback: ''),
+          extraCount: extraCount,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRequestNotificationCard({
+    required int? requestId,
+    required String recipientName,
+    required String foodName,
+    required String quantity,
+    required String message,
+    required int extraCount,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.notifications_active,
+                color: Color(0xFF2E7D32),
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                'NEW FOOD REQUEST',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: Color(0xFF2E7D32),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              const Text(
+                'Just now',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CircleAvatar(
+                radius: 18,
+                backgroundColor: Color(0xFFE8F5E9),
+                child: Icon(Icons.person, color: Color(0xFF2E7D32), size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                    children: [
+                      TextSpan(
+                        text: recipientName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const TextSpan(text: ' requested your '),
+                      TextSpan(
+                        text: foodName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (quantity.isNotEmpty && quantity != 'Not provided') ...[
+            const SizedBox(height: 8),
+            Text(
+              'Quantity: $quantity',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+            ),
+          ],
+          if (message.isNotEmpty && message != 'Not provided') ...[
+            const SizedBox(height: 6),
+            Text(
+              message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+            ),
+          ],
+          if (extraCount > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              '+$extraCount more new request${extraCount > 1 ? 's' : ''}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF2E7D32),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    side: BorderSide(color: Colors.red.shade300),
+                  ),
+                  onPressed: requestId == null
+                      ? null
+                      : () => _respondToNotificationRequest(
+                            requestId,
+                            'Rejected',
+                          ),
+                  child: const Text('Decline'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                  ),
+                  onPressed: requestId == null
+                      ? null
+                      : () => _respondToNotificationRequest(
+                            requestId,
+                            'Approved',
+                          ),
+                  child: const Text('Approve'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _respondToNotificationRequest(
+    int requestId,
+    String newStatus,
+  ) async {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$apiBaseUrl/requests/$requestId/status'),
+            headers: const {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'request_status': newStatus}),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newStatus == 'Approved'
+                  ? 'Request approved.'
+                  : 'Request declined.',
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        await _fetchListings();
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Unable to update the request.'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Could not connect to the server.'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      debugPrint('Respond to request error: $error');
+    }
   }
 
   Future<void> _fetchListings() async {
@@ -180,7 +473,7 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: _isLoading ? null : _fetchListings,
+            onPressed: _isLoading ? null : _refreshDashboard,
             icon: const Icon(Icons.refresh),
           ),
         ],

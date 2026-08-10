@@ -54,6 +54,20 @@ class _RequestFoodScreenState extends State<RequestFoodScreen> {
     return null;
   }
 
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Phone number is required';
+    }
+
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.length != 10) {
+      return 'Enter a valid 10-digit phone number';
+    }
+
+    return null;
+  }
+
   Future<void> _submitRequest() async {
     FocusScope.of(context).unfocus();
 
@@ -280,8 +294,7 @@ class _RequestFoodScreenState extends State<RequestFoodScreen> {
                       prefixIcon: Icon(Icons.phone),
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) =>
-                        _requiredValidator(value, 'Phone number'),
+                    validator: _validatePhone,
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
