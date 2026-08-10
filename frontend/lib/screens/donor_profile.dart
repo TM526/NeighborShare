@@ -1,22 +1,14 @@
 import 'package:flutter/material.dart';
 
 class CreateDonorProfileScreen extends StatefulWidget {
-  final bool isEditing;
-  final Map<String, String>? existingProfile;
-
-  const CreateDonorProfileScreen({
-    super.key,
-    this.isEditing = false,
-    this.existingProfile,
-  });
+  const CreateDonorProfileScreen({super.key});
 
   @override
   State<CreateDonorProfileScreen> createState() =>
       _CreateDonorProfileScreenState();
 }
 
-class _CreateDonorProfileScreenState
-    extends State<CreateDonorProfileScreen> {
+class _CreateDonorProfileScreenState extends State<CreateDonorProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _fullNameController = TextEditingController();
@@ -29,31 +21,6 @@ class _CreateDonorProfileScreenState
   bool _isSubmitting = false;
 
   @override
-  void initState() {
-    super.initState();
-
-    if (widget.existingProfile != null) {
-      _fullNameController.text =
-          widget.existingProfile!["fullName"] ?? "";
-
-      _emailController.text =
-          widget.existingProfile!["email"] ?? "";
-
-      _phoneController.text =
-          widget.existingProfile!["phone"] ?? "";
-
-      _streetAddressController.text =
-          widget.existingProfile!["streetAddress"] ?? "";
-
-      _cityController.text =
-          widget.existingProfile!["city"] ?? "";
-
-      _postalCodeController.text =
-          widget.existingProfile!["postalCode"] ?? "";
-    }
-  }
-
-  @override
   void dispose() {
     _fullNameController.dispose();
     _emailController.dispose();
@@ -64,18 +31,13 @@ class _CreateDonorProfileScreenState
     super.dispose();
   }
 
-  String? _validateRequired(
-      String? value,
-      String fieldName,
-      ) {
+  String? _validateRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
       return '$fieldName is required';
     }
-
     if (value.trim().length < 2) {
       return '$fieldName is too short';
     }
-
     return null;
   }
 
@@ -83,15 +45,10 @@ class _CreateDonorProfileScreenState
     if (value == null || value.trim().isEmpty) {
       return 'Email address is required';
     }
-
-    final emailRegex = RegExp(
-      r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$',
-    );
-
+    final emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
     if (!emailRegex.hasMatch(value.trim())) {
       return 'Enter a valid email address';
     }
-
     return null;
   }
 
@@ -99,14 +56,10 @@ class _CreateDonorProfileScreenState
     if (value == null || value.trim().isEmpty) {
       return 'Phone number is required';
     }
-
-    final digitsOnly =
-    value.replaceAll(RegExp(r'[^0-9]'), '');
-
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
     if (digitsOnly.length != 10) {
       return 'Enter a valid 10-digit phone number';
     }
-
     return null;
   }
 
@@ -114,57 +67,37 @@ class _CreateDonorProfileScreenState
     if (value == null || value.trim().isEmpty) {
       return 'Postal code is required';
     }
-
     final postalRegex = RegExp(
       r'^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z] ?\d[ABCEGHJ-NPRSTV-Z]\d$',
       caseSensitive: false,
     );
-
     if (!postalRegex.hasMatch(value.trim())) {
       return 'Enter a valid Canadian postal code (e.g. M5V 2T6)';
     }
-
     return null;
   }
 
   Future<void> _handleSubmit() async {
+    // Hide keyboard
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    setState(() {
-      _isSubmitting = true;
-    });
+    setState(() => _isSubmitting = true);
 
-    await Future.delayed(
-      const Duration(seconds: 1),
-    );
+    // Simulate a network request
+    await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
-    setState(() {
-      _isSubmitting = false;
-    });
+    setState(() => _isSubmitting = false);
 
-    final profile = <String, String>{
-      "fullName": _fullNameController.text.trim(),
-      "email": _emailController.text.trim(),
-      "phone": _phoneController.text.trim(),
-      "streetAddress":
-      _streetAddressController.text.trim(),
-      "city": _cityController.text.trim(),
-      "postalCode":
-      _postalCodeController.text.trim(),
-    };
-
-    _showSuccessDialog(profile);
+    _showSuccessDialog();
   }
 
-  void _showSuccessDialog(
-      Map<String, String> profile,
-      ) {
+  void _showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -174,12 +107,7 @@ class _CreateDonorProfileScreenState
             borderRadius: BorderRadius.circular(20),
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              24,
-              32,
-              24,
-              24,
-            ),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -196,26 +124,18 @@ class _CreateDonorProfileScreenState
                     size: 56,
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                Text(
-                  widget.isEditing
-                      ? "Profile Updated!"
-                      : "Profile Created!",
-                  style: const TextStyle(
+                const Text(
+                  'Profile Created!',
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 Text(
-                  widget.isEditing
-                      ? "Your donor profile has been successfully updated."
-                      : "Welcome aboard, ${profile["fullName"]!.isEmpty ? "Neighbour" : profile["fullName"]}! "
-                      "Your donor profile has been successfully created.",
+                  'Welcome aboard, ${_fullNameController.text.trim().isEmpty ? 'Neighbour' : _fullNameController.text.trim()}! '
+                  'Your donor profile has been successfully created.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -223,30 +143,22 @@ class _CreateDonorProfileScreenState
                     height: 1.4,
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor:
-                      const Color(0xFF2E7D32),
-                      padding:
-                      const EdgeInsets.symmetric(
-                        vertical: 14,
-                      ),
+                      backgroundColor: const Color(0xFF2E7D32),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                        BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     onPressed: () {
-                      Navigator.of(context).pop(
-                        profile,
-                      );
+                      Navigator.of(context).pop();
+                      _resetForm();
                     },
-                    child: const Text("Done"),
+                    child: const Text('Done'),
                   ),
                 ),
               ],
@@ -257,255 +169,167 @@ class _CreateDonorProfileScreenState
     );
   }
 
-  void _showHelpTip() {
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
+  void _resetForm() {
+    _formKey.currentState?.reset();
+    _fullNameController.clear();
+    _emailController.clear();
+    _phoneController.clear();
+    _streetAddressController.clear();
+    _cityController.clear();
+    _postalCodeController.clear();
+  }
 
+  void _showHelpTip() {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
+      SnackBar(
+        content: const Row(
           children: [
-            Icon(
-              Icons.lightbulb_outline,
-              color: Colors.white,
-            ),
+            Icon(Icons.lightbulb_outline, color: Colors.white),
             SizedBox(width: 12),
             Expanded(
               child: Text(
-                "Tip: Use your home address so nearby "
-                    "neighbours can easily arrange pickups "
-                    "for your donations.",
+                'Tip: Use your home address so nearby neighbours can '
+                'easily arrange pickups for your donations.',
               ),
             ),
           ],
         ),
-        backgroundColor: Color(0xFF2E7D32),
+        backgroundColor: const Color(0xFF2E7D32),
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: const Duration(seconds: 4),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.isEditing
-        ? "Edit Donor Profile"
-        : "Become a Donor";
-
-    final subtitle = widget.isEditing
-        ? "Update your information to keep your donor profile current."
-        : "Share surplus food with neighbours nearby and help reduce waste in your community.";
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "NeighbourShare",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          'NeighbourShare',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor:
-        const Color(0xFF2E7D32),
+        backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           TextButton.icon(
             onPressed: _showHelpTip,
-            icon: const Icon(
-              Icons.help_outline,
-              color: Colors.white,
-            ),
+            icon: const Icon(Icons.help_outline, color: Colors.white),
             label: const Text(
-              "Help",
-              style: TextStyle(
-                color: Colors.white,
-              ),
+              'Help',
+              style: TextStyle(color: Colors.white),
             ),
           ),
         ],
       ),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.zero,
           child: Center(
             child: ConstrainedBox(
-              constraints:
-              const BoxConstraints(maxWidth: 640),
+              constraints: const BoxConstraints(maxWidth: 640),
               child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildHeader(
-                    title,
-                    subtitle,
-                  ),
-
+                  _buildHeader(),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      20,
-                      24,
-                      20,
-                      32,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
                     child: Form(
                       key: _formKey,
-                      autovalidateMode:
-                      AutovalidateMode
-                          .onUserInteraction,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.stretch,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _buildSectionHeader(
                             icon: Icons.person_outline,
-                            title:
-                            "Personal Information",
+                            title: 'Personal Information',
                           ),
-
                           const SizedBox(height: 16),
-
                           _buildCard(
                             children: [
                               _buildTextField(
-                                controller:
-                                _fullNameController,
-                                label: "Full Name",
-                                hint:
-                                "e.g. Jordan Smith",
-                                icon:
-                                Icons.person_outline,
-                                keyboardType:
-                                TextInputType.name,
-                                textCapitalization:
-                                TextCapitalization
-                                    .words,
+                                controller: _fullNameController,
+                                label: 'Full Name',
+                                hint: 'e.g. Jordan Smith',
+                                icon: Icons.person_outline,
+                                keyboardType: TextInputType.name,
+                                textCapitalization: TextCapitalization.words,
                                 validator: (v) =>
-                                    _validateRequired(
-                                      v,
-                                      "Full name",
-                                    ),
+                                    _validateRequired(v, 'Full name'),
                               ),
-
                               const SizedBox(height: 18),
-
                               _buildTextField(
-                                controller:
-                                _emailController,
-                                label:
-                                "Email Address",
-                                hint:
-                                "e.g. jordan@example.com",
-                                icon:
-                                Icons.email_outlined,
-                                keyboardType:
-                                TextInputType
-                                    .emailAddress,
-                                validator:
-                                _validateEmail,
+                                controller: _emailController,
+                                label: 'Email Address',
+                                hint: 'e.g. jordan@example.com',
+                                icon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: _validateEmail,
                               ),
-
                               const SizedBox(height: 18),
-
                               _buildTextField(
-                                controller:
-                                _phoneController,
-                                label:
-                                "Phone Number",
-                                hint:
-                                "e.g. (555) 123-4567",
-                                icon:
-                                Icons.phone_outlined,
-                                keyboardType:
-                                TextInputType.phone,
-                                validator:
-                                _validatePhone,
+                                controller: _phoneController,
+                                label: 'Phone Number',
+                                hint: 'e.g. (555) 123-4567',
+                                icon: Icons.phone_outlined,
+                                keyboardType: TextInputType.phone,
+                                validator: _validatePhone,
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 28),
-
                           _buildSectionHeader(
-                            icon:
-                            Icons.location_on_outlined,
-                            title:
-                            "Address Information",
+                            icon: Icons.location_on_outlined,
+                            title: 'Address Information',
                           ),
-
                           const SizedBox(height: 16),
-
                           _buildCard(
                             children: [
                               _buildTextField(
-                                controller:
-                                _streetAddressController,
-                                label:
-                                "Street Address",
-                                hint:
-                                "e.g. 123 Maple Street",
-                                icon:
-                                Icons.home_outlined,
-                                keyboardType:
-                                TextInputType
-                                    .streetAddress,
+                                controller: _streetAddressController,
+                                label: 'Street Address',
+                                hint: 'e.g. 123 Maple Street',
+                                icon: Icons.home_outlined,
+                                keyboardType: TextInputType.streetAddress,
                                 textCapitalization:
-                                TextCapitalization
-                                    .words,
+                                    TextCapitalization.words,
                                 validator: (v) =>
-                                    _validateRequired(
-                                      v,
-                                      "Street address",
-                                    ),
+                                    _validateRequired(v, 'Street address'),
                               ),
-
                               const SizedBox(height: 18),
-
                               _buildTextField(
-                                controller:
-                                _cityController,
-                                label: "City",
-                                hint: "e.g. Toronto",
-                                icon: Icons
-                                    .location_city_outlined,
-                                keyboardType:
-                                TextInputType.text,
+                                controller: _cityController,
+                                label: 'City',
+                                hint: 'e.g. Toronto',
+                                icon: Icons.location_city_outlined,
+                                keyboardType: TextInputType.text,
                                 textCapitalization:
-                                TextCapitalization
-                                    .words,
+                                    TextCapitalization.words,
                                 validator: (v) =>
-                                    _validateRequired(
-                                      v,
-                                      "City",
-                                    ),
+                                    _validateRequired(v, 'City'),
                               ),
-
                               const SizedBox(height: 18),
-
                               _buildTextField(
-                                controller:
-                                _postalCodeController,
-                                label:
-                                "Postal Code",
-                                hint: "e.g. M5V 2T6",
-                                icon: Icons
-                                    .markunread_mailbox_outlined,
-                                keyboardType:
-                                TextInputType.text,
+                                controller: _postalCodeController,
+                                label: 'Postal Code',
+                                hint: 'e.g. M5V 2T6',
+                                icon: Icons.markunread_mailbox_outlined,
+                                keyboardType: TextInputType.text,
                                 textCapitalization:
-                                TextCapitalization
-                                    .characters,
-                                validator:
-                                _validatePostalCode,
+                                    TextCapitalization.characters,
+                                validator: _validatePostalCode,
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 32),
-
                           _buildSubmitButton(),
-
                           const SizedBox(height: 20),
-
                           _buildTermsText(),
                         ],
                       ),
@@ -520,18 +344,10 @@ class _CreateDonorProfileScreenState
     );
   }
 
-  Widget _buildHeader(
-      String title,
-      String subtitle,
-      ) {
+  Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        24,
-        32,
-        24,
-        40,
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -543,15 +359,13 @@ class _CreateDonorProfileScreenState
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
-              borderRadius:
-              BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.volunteer_activism,
@@ -559,22 +373,20 @@ class _CreateDonorProfileScreenState
               size: 32,
             ),
           ),
-
           const SizedBox(height: 16),
-
-          Text(
-            title,
-            style: const TextStyle(
+          const Text(
+            'Become a Donor',
+            style: TextStyle(
               color: Colors.white,
               fontSize: 26,
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
-            subtitle,
+            'Share surplus food with neighbours nearby and help '
+            'reduce waste in your community. Fill out your details '
+            'to get started.',
             style: TextStyle(
               color: Colors.white.withOpacity(0.92),
               fontSize: 14,
@@ -586,17 +398,10 @@ class _CreateDonorProfileScreenState
     );
   }
 
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-  }) {
+  Widget _buildSectionHeader({required IconData icon, required String title}) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: const Color(0xFF2E7D32),
-          size: 22,
-        ),
+        Icon(icon, color: const Color(0xFF2E7D32), size: 22),
         const SizedBox(width: 8),
         Text(
           title,
@@ -610,15 +415,12 @@ class _CreateDonorProfileScreenState
     );
   }
 
-  Widget _buildCard({
-    required List<Widget> children,
-  }) {
+  Widget _buildCard({required List<Widget> children}) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-        BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
@@ -627,9 +429,7 @@ class _CreateDonorProfileScreenState
           ),
         ],
       ),
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
@@ -640,8 +440,7 @@ class _CreateDonorProfileScreenState
     required IconData icon,
     required TextInputType keyboardType,
     required String? Function(String?) validator,
-    TextCapitalization textCapitalization =
-        TextCapitalization.none,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return TextFormField(
       controller: controller,
@@ -651,10 +450,7 @@ class _CreateDonorProfileScreenState
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(
-          icon,
-          color: const Color(0xFF2E7D32),
-        ),
+        prefixIcon: Icon(icon, color: const Color(0xFF2E7D32)),
       ),
     );
   }
@@ -664,47 +460,39 @@ class _CreateDonorProfileScreenState
       height: 54,
       child: FilledButton(
         style: FilledButton.styleFrom(
-          backgroundColor:
-          const Color(0xFF2E7D32),
-          disabledBackgroundColor:
-          const Color(0xFF2E7D32)
-              .withOpacity(0.7),
+          backgroundColor: const Color(0xFF2E7D32),
+          disabledBackgroundColor: const Color(0xFF2E7D32).withOpacity(0.7),
           shape: RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14),
           ),
           elevation: 2,
         ),
-        onPressed:
-        _isSubmitting ? null : _handleSubmit,
+        onPressed: _isSubmitting ? null : _handleSubmit,
         child: _isSubmitting
             ? const SizedBox(
-          width: 24,
-          height: 24,
-          child:
-          CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2.5,
-          ),
-        )
-            : Text(
-          widget.isEditing
-              ? "Save Changes"
-              : "Create Donor Profile",
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : const Text(
+                'Create Donor Profile',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }
 
   Widget _buildTermsText() {
     return Text(
-      widget.isEditing
-          ? "Make sure your profile information is accurate and up to date."
-          : "By creating a donor profile, you agree to NeighbourShare's Terms of Service and Privacy Policy, and confirm that the information provided is accurate to the best of your knowledge.",
+      'By creating a donor profile, you agree to NeighbourShare\'s '
+      'Terms of Service and Privacy Policy, and confirm that the '
+      'information provided is accurate to the best of your knowledge.',
       textAlign: TextAlign.center,
       style: TextStyle(
         fontSize: 12,
