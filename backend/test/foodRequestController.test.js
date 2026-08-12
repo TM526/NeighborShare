@@ -63,7 +63,7 @@ describe("foodRequestController", () => {
   });
 
   test("retrieves a food request by ID", async () => {
-    const req = createRequest({ params: { id: "101" } });
+    const req = createRequest({ params: { id: "101" }, query: { recipient_id: "2" } });
     const res = createResponse();
 
     pool.query.mockResolvedValueOnce({ rows: [{ request_id: 101, listing_id: 1, recipient_id: 2, request_status: "Pending" }] });
@@ -76,6 +76,26 @@ describe("foodRequestController", () => {
     );
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ request_id: 101 }));
+  });
+
+  test("returns 400 when recipient_id is missing", async () => {
+    const req = createRequest({ params: { id: "101" } });
+    const res = createResponse();
+
+    await getFoodRequestById(req, res);
+
+    expect(pool.query).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  test.each(["0", "-1", "abc", " "])("returns 400 for invalid recipient_id %j", async (recipientId) => {
+    const req = createRequest({ params: { id: "101" }, query: { recipient_id: recipientId } });
+    const res = createResponse();
+
+    await getFoodRequestById(req, res);
+
+    expect(pool.query).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   test("verifies a food request belongs to the correct recipient", async () => {
@@ -103,7 +123,7 @@ describe("foodRequestController", () => {
   });
 
   test("returns 404 for a missing food request", async () => {
-    const req = createRequest({ params: { id: "999" } });
+    const req = createRequest({ params: { id: "999" }, query: { recipient_id: "2" } });
     const res = createResponse();
 
     pool.query.mockResolvedValueOnce({ rows: [] });
