@@ -17,7 +17,7 @@ const createResponse = () => {
   return res;
 };
 
-const createRequest = ({ body = {}, params = {} } = {}) => ({ body, params });
+const createRequest = ({ body = {}, params = {}, query = {} } = {}) => ({ body, params, query });
 
 describe("foodRequestController", () => {
   beforeEach(() => {
@@ -76,6 +76,30 @@ describe("foodRequestController", () => {
     );
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ request_id: 101 }));
+  });
+
+  test("verifies a food request belongs to the correct recipient", async () => {
+    const req = createRequest({ params: { id: "101" }, query: { recipient_id: "2" } });
+    const res = createResponse();
+
+    pool.query.mockResolvedValueOnce({ rows: [{ request_id: 101, listing_id: 1, recipient_id: 2, request_status: "Pending" }] });
+
+    await getFoodRequestById(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ request_id: 101, request_status: "Pending" }));
+  });
+
+  test("returns 403 when recipient does not own the request", async () => {
+    const req = createRequest({ params: { id: "101" }, query: { recipient_id: "7" } });
+    const res = createResponse();
+
+    pool.query.mockResolvedValueOnce({ rows: [{ request_id: 101, listing_id: 1, recipient_id: 2, request_status: "Pending" }] });
+
+    await getFoodRequestById(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: "Request does not belong to this recipient." });
   });
 
   test("returns 404 for a missing food request", async () => {
