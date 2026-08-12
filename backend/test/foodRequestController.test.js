@@ -209,4 +209,137 @@ describe("foodRequestController", () => {
     expect(res.json).toHaveBeenCalledWith({ message: "Food request not found." });
     expect(client.release).toHaveBeenCalled();
   });
+
+  test("updates a request status to Cancelled and changes listing to Available", async () => {
+    const client = { query: jest.fn(), release: jest.fn() };
+    pool.connect.mockResolvedValueOnce(client);
+    client.query
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ request_id: 103, listing_id: 3, request_status: "Cancelled" }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({});
+
+    const req = createRequest({ params: { id: "103" }, body: { request_status: "Cancelled" } });
+    const res = createResponse();
+
+    await updateFoodRequestStatus(req, res);
+
+    expect(client.query).toHaveBeenCalledWith("BEGIN");
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE food_requests"),
+      ["Cancelled", "103"]
+    );
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE food_listings"),
+      ["Available", 3]
+    );
+    expect(client.query).toHaveBeenCalledWith("COMMIT");
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Food request status updated successfully.",
+        request: expect.objectContaining({ request_status: "Cancelled" }),
+      })
+    );
+    expect(client.release).toHaveBeenCalled();
+  });
+
+  test("updates a request status to Completed and changes listing to Collected", async () => {
+    const client = { query: jest.fn(), release: jest.fn() };
+    pool.connect.mockResolvedValueOnce(client);
+    client.query
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ request_id: 104, listing_id: 4, request_status: "Completed" }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({});
+
+    const req = createRequest({ params: { id: "104" }, body: { request_status: "Completed" } });
+    const res = createResponse();
+
+    await updateFoodRequestStatus(req, res);
+
+    expect(client.query).toHaveBeenCalledWith("BEGIN");
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE food_requests"),
+      ["Completed", "104"]
+    );
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE food_listings"),
+      ["Collected", 4]
+    );
+    expect(client.query).toHaveBeenCalledWith("COMMIT");
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Food request status updated successfully.",
+        request: expect.objectContaining({ request_status: "Completed" }),
+      })
+    );
+    expect(client.release).toHaveBeenCalled();
+  });
+
+  test("updates a request status to Pending without changing listing status", async () => {
+    const client = { query: jest.fn(), release: jest.fn() };
+    pool.connect.mockResolvedValueOnce(client);
+    client.query
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ request_id: 105, listing_id: 5, request_status: "Pending" }] })
+      .mockResolvedValueOnce({});
+
+    const req = createRequest({ params: { id: "105" }, body: { request_status: "Pending" } });
+    const res = createResponse();
+
+    await updateFoodRequestStatus(req, res);
+
+    expect(client.query).toHaveBeenCalledWith("BEGIN");
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE food_requests"),
+      ["Pending", "105"]
+    );
+    // Verify that food_listings was NOT updated for Pending status
+    const listingUpdateCalls = client.query.mock.calls.filter(call =>
+      call[0]?.includes("UPDATE food_listings")
+    );
+    expect(listingUpdateCalls.length).toBe(0);
+    expect(client.query).toHaveBeenCalledWith("COMMIT");
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Food request status updated successfully.",
+        request: expect.objectContaining({ request_status: "Pending" }),
+      })
+    );
+    expect(client.release).toHaveBeenCalled();
+  });
+
+  test("returns 400 when request_status is missing or empty", async () => {
+    const client = { query: jest.fn(), release: jest.fn() };
+    pool.connect.mockResolvedValueOnce(client);
+
+    const req = createRequest({ params: { id: "106" }, body: { request_status: "" } });
+    const res = createResponse();
+
+    await updateFoodRequestStatus(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "Request status is required." });
+    expect(client.release).toHaveBeenCalled();
+  });
+
+  test("returns 500 on database connection error during status update", async () => {
+    const client = { query: jest.fn(), release: jest.fn() };
+    pool.connect.mockResolvedValueOnce(client);
+    client.query
+      .mockRejectedValueOnce(new Error("Connection lost"));
+
+    const req = createRequest({ params: { id: "107" }, body: { request_status: "Approved" } });
+    const res = createResponse();
+
+    await updateFoodRequestStatus(req, res);
+
+    expect(client.query).toHaveBeenCalledWith("ROLLBACK");
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: "Error updating food request status." });
+    expect(client.release).toHaveBeenCalled();
+  });
 });
