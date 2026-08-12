@@ -3,9 +3,11 @@ const router = express.Router();
 
 const {
 	getMessagesByRecipient,
-	markMessagesAsRead
+	markMessagesAsRead,
+	sendMessage
 } = require("../controllers/messageController");
 
+router.post("/", sendMessage);
 router.patch("/:recipientId/read", markMessagesAsRead);
 router.get("/:recipientId", getMessagesByRecipient);
 

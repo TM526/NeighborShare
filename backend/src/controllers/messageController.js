@@ -86,7 +86,77 @@ const markMessagesAsRead = async (req, res) => {
     }
 };
 
+const sendMessage = async (req, res) => {
+    try {
+        const authenticatedRecipientId = req.user?.recipient_id;
+        const { donor_id: donorId, message } = req.body || {};
+        const parsedDonorId = Number(donorId);
+
+        if (authenticatedRecipientId === undefined) {
+            return res.status(401).json({
+                message: "Authentication is required to send messages."
+            });
+        }
+
+        if (!Number.isInteger(parsedDonorId) || parsedDonorId <= 0) {
+            return res.status(400).json({
+                message: "A valid donor ID is required."
+            });
+        }
+
+        const trimmedMessage = message?.trim();
+
+        if (!trimmedMessage) {
+            return res.status(400).json({
+                message: "Message content is required."
+            });
+        }
+
+        const recipientResult = await pool.query(
+            `SELECT recipient_id
+             FROM recipient_profiles
+             WHERE recipient_id = $1`,
+            [authenticatedRecipientId]
+        );
+
+        if (recipientResult.rows.length === 0) {
+            return res.status(401).json({
+                message: "Authenticated recipient profile not found."
+            });
+        }
+
+        const donorResult = await pool.query(
+            `SELECT donor_id
+             FROM donor_profiles
+             WHERE donor_id = $1`,
+            [parsedDonorId]
+        );
+
+        if (donorResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Donor profile not found."
+            });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO messages (donor_id, recipient_id, message)
+             VALUES ($1, $2, $3)
+             RETURNING message_id, donor_id, recipient_id, message, sent_at, is_read`,
+            [parsedDonorId, authenticatedRecipientId, trimmedMessage]
+        );
+
+        return res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Error sending message."
+        });
+    }
+};
+
 module.exports = {
     getMessagesByRecipient,
-    markMessagesAsRead
+    markMessagesAsRead,
+    sendMessage
 };
