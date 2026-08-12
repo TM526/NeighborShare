@@ -47,15 +47,13 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     }
 
     try {
-      final response = await http
-          .get(
-            Uri.parse('$apiBaseUrl/listings'),
-            headers: const {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-          )
-          .timeout(const Duration(seconds: 30));
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/listings'),
+        headers: const {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -71,9 +69,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
         );
       }
 
-      final listings = decoded
-          .whereType<Map>()
-          .map<Map<String, String>>((item) {
+      final listings =
+          decoded.whereType<Map>().map<Map<String, String>>((item) {
         final map = Map<String, dynamic>.from(item);
 
         return {
@@ -124,9 +121,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
       final name = food["name"] ?? "";
       final category = food["category"] ?? "";
 
-      final matchesSearch = name
-          .toLowerCase()
-          .contains(_searchController.text.toLowerCase());
+      final matchesSearch =
+          name.toLowerCase().contains(_searchController.text.toLowerCase());
 
       final matchesCategory =
           selectedCategory == "All" || category == selectedCategory;
@@ -277,8 +273,14 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
         itemCount: filtered.length,
         itemBuilder: (context, index) {
           final food = filtered[index];
-          final status = food["status"] ?? "Available";
+          final status = (food["status"] ?? "").trim();
           final isAvailable = status.toLowerCase() == "available";
+          final pickupLocation = (food["location"] ?? "").trim();
+          final availabilityText = isAvailable
+              ? "Available Today"
+              : status.isNotEmpty
+                  ? status
+                  : "Status unknown";
 
           return InkWell(
             onTap: () {
@@ -338,20 +340,26 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       children: [
                         const Icon(Icons.location_on, color: Colors.red),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(food["location"] ?? "")),
+                        Expanded(
+                          child: Text(
+                            pickupLocation.isNotEmpty
+                                ? pickupLocation
+                                : "Not specified",
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.calendar_today, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text("Available Today"),
+                        const Icon(Icons.calendar_today, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Text(availabilityText),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Chip(
-                      label: Text(status),
+                      label: Text(status.isNotEmpty ? status : "Unknown"),
                       backgroundColor: isAvailable
                           ? Colors.green.shade100
                           : Colors.orange.shade100,
