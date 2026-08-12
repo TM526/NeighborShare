@@ -82,6 +82,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
           'quantity': map['quantity']?.toString() ?? '',
           'location': map['pickup_location']?.toString() ?? '',
           'description': map['description']?.toString() ?? '',
+          'expiry_date': map['expiry_date']?.toString() ?? '',
           'status': map['status']?.toString() ?? 'Available',
         };
       }).toList();

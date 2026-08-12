@@ -43,6 +43,28 @@ class FoodListingDetailsPage extends StatelessWidget {
     }
   }
 
+  String _formatExpiryDate(String? value) {
+    final expiryDate = DateTime.tryParse(value ?? '');
+    if (expiryDate == null) return 'Not specified';
+
+    const monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+
+    return '${monthNames[expiryDate.month - 1]} ${expiryDate.day}, ${expiryDate.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final foodName = listing['name'] ?? 'Unnamed food';
@@ -50,6 +72,7 @@ class FoodListingDetailsPage extends StatelessWidget {
     final quantity = listing['quantity'] ?? 'Not specified';
     final location = listing['location'] ?? 'Not specified';
     final description = listing['description'] ?? 'No additional description provided.';
+    final expiryDate = _formatExpiryDate(listing['expiry_date']);
     final status = listing['status'] ?? 'Available';
     final donorName = listing['donor_name'] ?? listing['donorId'] ?? 'Community donor';
 
@@ -128,6 +151,12 @@ class FoodListingDetailsPage extends StatelessWidget {
               icon: Icons.location_on_outlined,
               title: 'Pickup Location',
               value: location,
+            ),
+
+            _informationCard(
+              icon: Icons.event_outlined,
+              title: 'Expiry Date',
+              value: expiryDate,
             ),
 
             _informationCard(

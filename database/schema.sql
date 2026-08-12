@@ -83,6 +83,8 @@ CREATE TABLE food_listings (
 
     description TEXT,
 
+    expiry_date DATE,
+
     status VARCHAR(20) NOT NULL DEFAULT 'Available'
         CHECK (
             status IN (
