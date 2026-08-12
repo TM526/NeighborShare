@@ -11,8 +11,10 @@ import 'recipient_profile.dart';
 class RecipientDashboardScreen extends StatefulWidget {
   // Temporary default for testing until recipient login/session is added.
   final int recipientId;
+  // Optional HTTP client for testing. If null, the package http will be used.
+  final dynamic httpClient;
 
-  const RecipientDashboardScreen({super.key, this.recipientId = 1});
+  const RecipientDashboardScreen({super.key, this.recipientId = 1, this.httpClient});
 
   @override
   State<RecipientDashboardScreen> createState() =>
@@ -41,7 +43,8 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
     });
 
     try {
-      final response = await http.get(
+      final client = widget.httpClient ?? http.Client();
+      final response = await client.get(
         Uri.parse(
           '$apiBaseUrl/recipients/${widget.recipientId}/requests',
         ),
@@ -104,7 +107,8 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
     _isPollingRequest = true;
 
     try {
-      final response = await http.get(
+      final client = widget.httpClient ?? http.Client();
+      final response = await client.get(
         Uri.parse(
           '$apiBaseUrl/recipients/${widget.recipientId}/requests',
         ),

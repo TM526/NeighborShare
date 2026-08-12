@@ -18,8 +18,10 @@ bool _donorRequestsBaselineSet = false;
 
 class DonorDashboardScreen extends StatefulWidget {
   final int? accountId;
+  // Optional HTTP client for testing.
+  final dynamic httpClient;
 
-  const DonorDashboardScreen({super.key, this.accountId});
+  const DonorDashboardScreen({super.key, this.accountId, this.httpClient});
 
   @override
   State<DonorDashboardScreen> createState() => _DonorDashboardScreenState();
@@ -48,7 +50,8 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
     if (accountId == null) return;
 
     try {
-      final response = await http
+      final client = widget.httpClient ?? http.Client();
+      final response = await client
           .get(
             Uri.parse('$apiBaseUrl/requests/donor/$accountId'),
             headers: const {'Accept': 'application/json'},
