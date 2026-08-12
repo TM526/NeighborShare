@@ -88,7 +88,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
+          child: RefreshIndicator(
           onRefresh: () async {
             _refreshReports();
           },
@@ -99,121 +99,173 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
               const SizedBox(height: 22),
 
-              _buildPeriodSelector(),
-
-              const SizedBox(height: 22),
-
-              const Text(
-                "Platform Overview",
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              _buildStatisticsGrid(),
-
-              const SizedBox(height: 28),
-
-              const Text(
-                "Available Reports",
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              _buildReportCard(
-                icon: Icons.people_alt_outlined,
-                title: "User Activity Report",
-                description:
-                "View user activity and engagement across the platform.",
-                value: (_summary != null ? '${(_summary!['totalDonors'] ?? 0) + (_summary!['totalRecipients'] ?? 0)}' : '—'),
-                label: "Active Users",
-                onTap: () {
-                  _openReport("User Activity");
-                },
-              ),
-
-              _buildReportCard(
-                icon: Icons.volunteer_activism_outlined,
-                title: "Donation Activity Report",
-                description:
-                "Review food donations and donation activity.",
-                value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
-                label: "Donations",
-                onTap: () {
-                  _openReport("Donation Activity");
-                },
-              ),
-
-              _buildReportCard(
-                icon: Icons.restaurant_menu_outlined,
-                title: "Food Listing Report",
-                description:
-                "Review food listings created and their current activity.",
-                value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
-                label: "Listings",
-                onTap: () {
-                  _openReport("Food Listing");
-                },
-              ),
-
-              _buildReportCard(
-                icon: Icons.assignment_outlined,
-                title: "Request Activity Report",
-                description:
-                "Review recipient requests and request activity.",
-                value: (_summary != null ? '${_summary!['totalRequests'] ?? 0}' : '—'),
-                label: "Requests",
-                onTap: () {
-                  _openReport("Request Activity");
-                },
-              ),
-
-              _buildReportCard(
-                icon: Icons.flag_outlined,
-                title: "Flagged Listings Report",
-                description:
-                "Review listings that have been reported by users.",
-                value: "4",
-                label: "Flagged",
-                onTap: () {
-                  _openReport("Flagged Listings");
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              SizedBox(
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: _refreshReports,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text(
-                    "Refresh Report Data",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+              if (_isLoading) ...[
+                const SizedBox(
+                  height: 220,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 12),
+                        Text("Loading report data..."),
+                      ],
                     ),
                   ),
                 ),
-              ),
+              ] else if (_error != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Card(
+                    color: Colors.red.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red.shade700),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Error loading reports: ${_error ?? "Unknown error"}',
+                              style: TextStyle(color: Colors.red.shade900),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _refreshReports,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                _buildPeriodSelector(),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 22),
 
-              _buildInformationCard(),
+                const Text(
+                  "Platform Overview",
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                _buildStatisticsGrid(),
+
+                const SizedBox(height: 28),
+                const SizedBox(height: 12),
+                // Recent activity (7 days)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _statCard(
+                        icon: Icons.calendar_view_week,
+                        title: "Listings (7d)",
+                        value: (_summary != null ? '${_summary!['recentListings7d'] ?? 0}' : '—'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _statCard(
+                        icon: Icons.schedule,
+                        title: "Requests (7d)",
+                        value: (_summary != null ? '${_summary!['recentRequests7d'] ?? 0}' : '—'),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+                const Text(
+                  "Available Reports",
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                _buildReportCard(
+                  icon: Icons.people_alt_outlined,
+                  title: "User Activity Report",
+                  description:
+                  "View user activity and engagement across the platform.",
+                  value: (_summary != null ? '${(_summary!['totalDonors'] ?? 0) + (_summary!['totalRecipients'] ?? 0)}' : '—'),
+                  label: "Active Users",
+                  onTap: () {
+                    _openReport("User Activity");
+                  },
+                ),
+
+                _buildReportCard(
+                  icon: Icons.volunteer_activism_outlined,
+                  title: "Listings Activity",
+                  description:
+                  "Review food listings created and recent listing activity.",
+                  value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
+                  label: "Listings",
+                  onTap: () {
+                    _openReport("Listings Activity");
+                  },
+                ),
+
+                _buildReportCard(
+                  icon: Icons.restaurant_menu_outlined,
+                  title: "Food Listing Report",
+                  description:
+                  "Review food listings created and their current activity.",
+                  value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
+                  label: "Listings",
+                  onTap: () {
+                    _openReport("Food Listing");
+                  },
+                ),
+
+                _buildReportCard(
+                  icon: Icons.assignment_outlined,
+                  title: "Request Activity Report",
+                  description:
+                  "Review recipient requests and request activity.",
+                  value: (_summary != null ? '${_summary!['totalRequests'] ?? 0}' : '—'),
+                  label: "Requests",
+                  onTap: () {
+                    _openReport("Request Activity");
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _refreshReports,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text(
+                      "Refresh Report Data",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                _buildInformationCard(),
+              ],
             ],
           ),
         ),
@@ -317,7 +369,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       children: [
         _statCard(
           icon: Icons.volunteer_activism,
-          title: "Donations",
+          title: "Donors",
           value: (_summary != null ? '${_summary!['totalDonors'] ?? 0}' : '—'),
         ),
         _statCard(
