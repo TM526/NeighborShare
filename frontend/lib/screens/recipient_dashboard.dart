@@ -36,7 +36,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
     _startPolling();
   }
 
-  Future<void> _fetchRequests() async {
+  Future<void> _fetchRequests({bool notifyStatusChanges = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -57,14 +57,22 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
         final decoded = jsonDecode(response.body);
 
         if (decoded is List) {
+          final fetchedRequests = decoded
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList();
+          final statusNotifications = notifyStatusChanges
+              ? _statusChangeNotifications(fetchedRequests)
+              : <String>[];
+
           setState(() {
-            _requests = decoded
-                .whereType<Map>()
-                .map((item) => Map<String, dynamic>.from(item))
-                .toList();
+            _requests = fetchedRequests;
             _isLoading = false;
             _pollingErrorMessage = null;
           });
+          for (final notification in statusNotifications) {
+            _showStatusNotification(notification);
+          }
           return;
         }
 
@@ -144,11 +152,17 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
 
+      final statusNotifications = _statusChangeNotifications(fetchedRequests);
+
       if (!_requestsAreEqual(_requests, fetchedRequests)) {
         setState(() {
           _requests = fetchedRequests;
           _pollingErrorMessage = null;
         });
+      }
+
+      for (final notification in statusNotifications) {
+        _showStatusNotification(notification);
       }
     } catch (error) {
       if (!mounted) return;
@@ -164,6 +178,44 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
     } finally {
       _isPollingRequest = false;
     }
+  }
+
+  List<String> _statusChangeNotifications(
+    List<Map<String, dynamic>> fetchedRequests,
+  ) {
+    final previousStatuses = <dynamic, String>{
+      for (final request in _requests)
+        request['request_id']: request['request_status']?.toString() ?? '',
+    };
+
+    return fetchedRequests
+        .where((request) => previousStatuses.containsKey(request['request_id']))
+        .map((request) {
+          final previousStatus = previousStatuses[request['request_id']];
+          final currentStatus = request['request_status']?.toString() ?? '';
+
+          if (previousStatus == currentStatus) return null;
+          if (currentStatus == 'Approved') {
+            return 'Your food request was approved.';
+          }
+          if (currentStatus == 'Rejected') {
+            return 'Your food request was rejected.';
+          }
+          return null;
+        })
+        .whereType<String>()
+        .toList();
+  }
+
+  void _showStatusNotification(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF2E7D32),
+      ),
+    );
   }
 
   bool _requestsAreEqual(
@@ -254,7 +306,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
         actions: [
           IconButton(
             tooltip: 'Refresh requests',
-            onPressed: _isLoading ? null : _fetchRequests,
+            onPressed: _isLoading ? null : () => _fetchRequests(notifyStatusChanges: true),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -276,7 +328,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
               ),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: _fetchRequests,
+                onRefresh: () => _fetchRequests(notifyStatusChanges: true),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.all(isSmallScreen ? 16 : 24),

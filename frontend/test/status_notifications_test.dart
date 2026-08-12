@@ -57,11 +57,13 @@ void main() {
     final Finder refresh = find.byTooltip('Refresh requests');
     expect(refresh, findsOneWidget);
     await tester.tap(refresh);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     // Now should show Approved and not Pending
     expect(find.text('Approved'), findsOneWidget);
     expect(find.text('Pending'), findsNothing);
+    expect(find.text('Your food request was approved.'), findsOneWidget);
   });
 
   testWidgets('Recipient: status changes from Pending to Rejected update UI',
@@ -106,10 +108,68 @@ void main() {
     expect(find.text('Pending'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Refresh requests'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Rejected'), findsOneWidget);
     expect(find.text('Pending'), findsNothing);
+    expect(find.text('Your food request was rejected.'), findsOneWidget);
+  });
+
+  testWidgets('Recipient: unchanged status does not show a repeated notification',
+      (WidgetTester tester) async {
+    var callCount = 0;
+
+    final client = MockClient((request) async {
+      callCount++;
+      return http.Response(
+        jsonEncode([
+          {
+            'request_id': 4,
+            'food_name': 'Rice',
+            'request_status': callCount == 1 ? 'Pending' : 'Pending'
+          }
+        ]),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+
+    await tester.pumpWidget(MaterialApp(
+      home: RecipientDashboardScreen(recipientId: 1, httpClient: client),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Refresh requests'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your food request was approved.'), findsNothing);
+    expect(find.text('Your food request was rejected.'), findsNothing);
+  });
+
+  testWidgets('Recipient: initial status does not show a change notification',
+      (WidgetTester tester) async {
+    final client = MockClient((request) async {
+      return http.Response(
+        jsonEncode([
+          {
+            'request_id': 5,
+            'food_name': 'Apples',
+            'request_status': 'Approved'
+          }
+        ]),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+
+    await tester.pumpWidget(MaterialApp(
+      home: RecipientDashboardScreen(recipientId: 1, httpClient: client),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your food request was approved.'), findsNothing);
+    expect(find.text('Your food request was rejected.'), findsNothing);
   });
 
   testWidgets('Donor: new pending request shows in-app notification',
