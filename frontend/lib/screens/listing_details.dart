@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'message_compose.dart';
 import 'request_food.dart';
 
 class FoodListingDetailsPage extends StatelessWidget {
@@ -150,7 +151,39 @@ class FoodListingDetailsPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 25),
-
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MessageComposeScreen(
+                        donorName: donorName,
+                        listingName: foodName,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.message_outlined),
+                label: const Text(
+                  'Message Donor',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF2E7D32),
+                  side: const BorderSide(color: Color(0xFF2E7D32)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
