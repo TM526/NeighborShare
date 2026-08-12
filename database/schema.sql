@@ -146,6 +146,7 @@ CREATE TABLE messages (
     recipient_id INTEGER NOT NULL,
     message TEXT NOT NULL,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
 
     CONSTRAINT fk_messages_donor
         FOREIGN KEY (donor_id)
@@ -164,7 +165,7 @@ CREATE TABLE messages (
 -- Sorts by sent_at (creation time) in ascending order
 -- Returns: message_id, donor_id, recipient_id, message content, sent_at timestamp
 -- Query:
---   SELECT message_id, donor_id, recipient_id, message, sent_at
+--   SELECT message_id, donor_id, recipient_id, message, sent_at, is_read
 --   FROM messages
 --   WHERE recipient_id = $1
 --   ORDER BY sent_at ASC;
@@ -174,7 +175,7 @@ CREATE TABLE messages (
 -- Returns: message_id, sender_id, receiver_id, message content, sent_at timestamp
 -- Handles empty conversations (returns empty result set gracefully)
 -- Query:
---   SELECT message_id, donor_id, recipient_id, message, sent_at
+--   SELECT message_id, donor_id, recipient_id, message, sent_at, is_read
 --   FROM messages
 --   WHERE (donor_id = $1 AND recipient_id = $2)
 --      OR (donor_id = $2 AND recipient_id = $1)

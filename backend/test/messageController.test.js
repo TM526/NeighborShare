@@ -1,5 +1,8 @@
 const pool = require("../src/config/db");
-const { getMessagesByRecipient } = require("../src/controllers/messageController");
+const {
+    getMessagesByRecipient,
+    markMessagesAsRead
+} = require("../src/controllers/messageController");
 
 jest.mock("../src/config/db", () => ({
     query: jest.fn()
@@ -19,8 +22,8 @@ describe("messageController", () => {
 
     test("retrieves an authenticated recipient's messages in chronological order", async () => {
         const messages = [
-            { message_id: 1, donor_id: 4, recipient_id: 2, message: "First", sent_at: "2026-01-01T10:00:00.000Z" },
-            { message_id: 2, donor_id: 4, recipient_id: 2, message: "Second", sent_at: "2026-01-01T10:05:00.000Z" }
+            { message_id: 1, donor_id: 4, recipient_id: 2, message: "First", sent_at: "2026-01-01T10:00:00.000Z", is_read: false },
+            { message_id: 2, donor_id: 4, recipient_id: 2, message: "Second", sent_at: "2026-01-01T10:05:00.000Z", is_read: true }
         ];
         const req = { params: { recipientId: "2" }, user: { recipient_id: 2 } };
         const res = createResponse();
@@ -54,5 +57,52 @@ describe("messageController", () => {
 
         expect(pool.query).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    test("marks the authenticated recipient's messages as read", async () => {
+        const req = {
+            params: { recipientId: "2" },
+            user: { recipient_id: 2 },
+            body: { message_ids: [1, 2] }
+        };
+        const res = createResponse();
+        pool.query.mockResolvedValueOnce({
+            rows: [{ message_id: 1, is_read: true }, { message_id: 2, is_read: true }]
+        });
+
+        await markMessagesAsRead(req, res);
+
+        expect(pool.query).toHaveBeenCalledWith(
+            expect.stringContaining("SET is_read = TRUE"),
+            [2, [1, 2]]
+        );
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    test("rejects an unauthorized mark-read request before querying", async () => {
+        const req = {
+            params: { recipientId: "7" },
+            user: { recipient_id: 2 },
+            body: { message_ids: [1] }
+        };
+        const res = createResponse();
+
+        await markMessagesAsRead(req, res);
+
+        expect(pool.query).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    test("rejects an unauthenticated mark-read request", async () => {
+        const req = {
+            params: { recipientId: "2" },
+            body: { message_ids: [1] }
+        };
+        const res = createResponse();
+
+        await markMessagesAsRead(req, res);
+
+        expect(pool.query).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(401);
     });
 });

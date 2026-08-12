@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/screens/inbox.dart';
 import 'package:frontend/screens/message_details.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+
+http.Client createInboxClient() {
+  return MockClient((request) async {
+    return http.Response('[]', 200);
+  });
+}
 
 void main() {
   group('MessageDetailsScreen', () {
@@ -88,8 +96,8 @@ void main() {
     testWidgets('creates a new conversation from the new-message dialog',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: InboxScreen(),
+        MaterialApp(
+          home: InboxScreen(httpClient: createInboxClient()),
         ),
       );
 
@@ -117,8 +125,8 @@ void main() {
     testWidgets('does not create a new conversation with incomplete input',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: InboxScreen(),
+        MaterialApp(
+          home: InboxScreen(httpClient: createInboxClient()),
         ),
       );
 
