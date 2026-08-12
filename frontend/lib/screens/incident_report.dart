@@ -1,7 +1,44 @@
 import 'package:flutter/material.dart';
 
-class IncidentReportPage extends StatelessWidget {
+class IncidentReportPage extends StatefulWidget {
 const IncidentReportPage({super.key});
+
+@override
+State<IncidentReportPage> createState() => _IncidentReportPageState();
+}
+
+class _IncidentReportPageState extends State<IncidentReportPage> {
+final TextEditingController _titleController = TextEditingController();
+final TextEditingController _descriptionController = TextEditingController();
+String? _titleError;
+String? _descriptionError;
+bool _reportSubmitted = false;
+
+@override
+void dispose() {
+_titleController.dispose();
+_descriptionController.dispose();
+super.dispose();
+}
+
+void _submitReport() {
+final title = _titleController.text.trim();
+final description = _descriptionController.text.trim();
+
+setState(() {
+_titleError = title.isEmpty ? 'Report title is required.' : null;
+_descriptionError = description.isEmpty ? 'Report details are required.' : null;
+_reportSubmitted = false;
+});
+
+if (_titleError != null || _descriptionError != null) {
+return;
+}
+
+setState(() {
+_reportSubmitted = true;
+});
+}
 
 @override
 Widget build(BuildContext context) {
@@ -40,11 +77,89 @@ appBar: AppBar(
 title: const Text("Incident Reports"),
 backgroundColor: Colors.green,
 ),
-body: ListView.builder(
+body: ListView(
 padding: const EdgeInsets.all(16),
-itemCount: incidents.length,
-itemBuilder: (context, index) {
-final incident = incidents[index];
+children: [
+_buildReportForm(),
+const SizedBox(height: 24),
+...incidents.map(_buildIncidentCard),
+],
+),
+);
+}
+
+Widget _buildReportForm() {
+return Card(
+elevation: 4,
+margin: const EdgeInsets.only(bottom: 16),
+shape: RoundedRectangleBorder(
+borderRadius: BorderRadius.circular(15),
+),
+child: Padding(
+padding: const EdgeInsets.all(16),
+child: Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+children: [
+const Text(
+"Submit an Incident Report",
+style: TextStyle(
+fontSize: 20,
+fontWeight: FontWeight.bold,
+),
+),
+const SizedBox(height: 14),
+TextField(
+controller: _titleController,
+decoration: InputDecoration(
+labelText: "Report title",
+hintText: "Describe the incident",
+errorText: _titleError,
+prefixIcon: const Icon(Icons.title),
+),
+),
+const SizedBox(height: 14),
+TextField(
+controller: _descriptionController,
+maxLines: 4,
+decoration: InputDecoration(
+labelText: "Incident details",
+hintText: "Explain what happened",
+errorText: _descriptionError,
+alignLabelWithHint: true,
+prefixIcon: const Icon(Icons.description_outlined),
+),
+),
+const SizedBox(height: 16),
+SizedBox(
+width: double.infinity,
+child: ElevatedButton.icon(
+onPressed: _submitReport,
+icon: const Icon(Icons.arrow_forward),
+label: const Text("Continue"),
+style: ElevatedButton.styleFrom(
+backgroundColor: Colors.green,
+foregroundColor: Colors.white,
+),
+),
+),
+if (_reportSubmitted)
+Padding(
+padding: const EdgeInsets.only(top: 12),
+child: Text(
+"Report is valid and ready for processing.",
+style: TextStyle(
+color: Colors.green.shade700,
+fontWeight: FontWeight.w600,
+),
+),
+),
+],
+),
+),
+);
+}
+
+Widget _buildIncidentCard(Map<String, String> incident) {
 
 Color statusColor;
 
@@ -133,9 +248,6 @@ label: const Text("Resolve"),
 ),
 ],
 ),
-),
-);
-},
 ),
 );
 }
