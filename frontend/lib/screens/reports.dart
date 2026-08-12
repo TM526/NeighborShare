@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/api_config.dart';
@@ -62,6 +63,56 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
+  Future<void> _exportReports() async {
+    if (_summary == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No report data available to export."),
+          backgroundColor: Color(0xFFB00020),
+        ),
+      );
+      return;
+    }
+
+    final csv = StringBuffer();
+    csv.writeln('Metric,Value');
+    csv.writeln('Donors,${_summary!['totalDonors'] ?? 0}');
+    csv.writeln('Recipients,${_summary!['totalRecipients'] ?? 0}');
+    csv.writeln('Listings,${_summary!['totalListings'] ?? 0}');
+    csv.writeln('Requests,${_summary!['totalRequests'] ?? 0}');
+    csv.writeln('Pending Requests,${_summary!['pendingRequests'] ?? 0}');
+    csv.writeln('Approved Requests,${_summary!['approvedRequests'] ?? 0}');
+    csv.writeln('Listings (7d),${_summary!['recentListings7d'] ?? 0}');
+    csv.writeln('Requests (7d),${_summary!['recentRequests7d'] ?? 0}');
+
+    if (!mounted) {
+      return;
+    }
+
+    try {
+      await Clipboard.setData(ClipboardData(text: csv.toString()));
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Report exported to clipboard."),
+          backgroundColor: Color(0xFF2E7D32),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Export failed: $error"),
+          backgroundColor: const Color(0xFFB00020),
+        ),
+      );
+    }
+  }
+
   void _openReport(String reportName) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -85,10 +136,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
             tooltip: "Refresh Reports",
             icon: const Icon(Icons.refresh),
           ),
+          IconButton(
+            onPressed: _exportReports,
+            tooltip: "Export Reports",
+            icon: const Icon(Icons.download_outlined),
+          ),
         ],
       ),
       body: SafeArea(
-          child: RefreshIndicator(
+        child: RefreshIndicator(
           onRefresh: () async {
             _refreshReports();
           },
@@ -96,9 +152,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             padding: const EdgeInsets.all(18),
             children: [
               _buildHeader(),
-
               const SizedBox(height: 22),
-
               if (_isLoading) ...[
                 const SizedBox(
                   height: 220,
@@ -165,7 +219,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       child: _statCard(
                         icon: Icons.calendar_view_week,
                         title: "Listings (7d)",
-                        value: (_summary != null ? '${_summary!['recentListings7d'] ?? 0}' : '—'),
+                        value: (_summary != null
+                            ? '${_summary!['recentListings7d'] ?? 0}'
+                            : '—'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -173,7 +229,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       child: _statCard(
                         icon: Icons.schedule,
                         title: "Requests (7d)",
-                        value: (_summary != null ? '${_summary!['recentRequests7d'] ?? 0}' : '—'),
+                        value: (_summary != null
+                            ? '${_summary!['recentRequests7d'] ?? 0}'
+                            : '—'),
                       ),
                     ),
                   ],
@@ -194,8 +252,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   icon: Icons.people_alt_outlined,
                   title: "User Activity Report",
                   description:
-                  "View user activity and engagement across the platform.",
-                  value: (_summary != null ? '${(_summary!['totalDonors'] ?? 0) + (_summary!['totalRecipients'] ?? 0)}' : '—'),
+                      "View user activity and engagement across the platform.",
+                  value: (_summary != null
+                      ? '${(_summary!['totalDonors'] ?? 0) + (_summary!['totalRecipients'] ?? 0)}'
+                      : '—'),
                   label: "Active Users",
                   onTap: () {
                     _openReport("User Activity");
@@ -206,8 +266,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   icon: Icons.volunteer_activism_outlined,
                   title: "Listings Activity",
                   description:
-                  "Review food listings created and recent listing activity.",
-                  value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
+                      "Review food listings created and recent listing activity.",
+                  value: (_summary != null
+                      ? '${_summary!['totalListings'] ?? 0}'
+                      : '—'),
                   label: "Listings",
                   onTap: () {
                     _openReport("Listings Activity");
@@ -218,8 +280,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   icon: Icons.restaurant_menu_outlined,
                   title: "Food Listing Report",
                   description:
-                  "Review food listings created and their current activity.",
-                  value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
+                      "Review food listings created and their current activity.",
+                  value: (_summary != null
+                      ? '${_summary!['totalListings'] ?? 0}'
+                      : '—'),
                   label: "Listings",
                   onTap: () {
                     _openReport("Food Listing");
@@ -230,8 +294,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   icon: Icons.assignment_outlined,
                   title: "Request Activity Report",
                   description:
-                  "Review recipient requests and request activity.",
-                  value: (_summary != null ? '${_summary!['totalRequests'] ?? 0}' : '—'),
+                      "Review recipient requests and request activity.",
+                  value: (_summary != null
+                      ? '${_summary!['totalRequests'] ?? 0}'
+                      : '—'),
                   label: "Requests",
                   onTap: () {
                     _openReport("Request Activity");
@@ -375,17 +441,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _statCard(
           icon: Icons.people,
           title: "Users",
-          value: (_summary != null ? '${(_summary!['totalDonors'] ?? 0) + (_summary!['totalRecipients'] ?? 0)}' : '—'),
+          value: (_summary != null
+              ? '${(_summary!['totalDonors'] ?? 0) + (_summary!['totalRecipients'] ?? 0)}'
+              : '—'),
         ),
         _statCard(
           icon: Icons.assignment,
           title: "Requests",
-          value: (_summary != null ? '${_summary!['totalRequests'] ?? 0}' : '—'),
+          value:
+              (_summary != null ? '${_summary!['totalRequests'] ?? 0}' : '—'),
         ),
         _statCard(
           icon: Icons.restaurant,
           title: "Listings",
-          value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
+          value:
+              (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
         ),
       ],
     );
@@ -467,13 +537,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   size: 28,
                 ),
               ),
-
               const SizedBox(width: 14),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
@@ -494,9 +561,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(width: 10),
-
               Column(
                 children: [
                   Text(
@@ -549,8 +614,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Expanded(
             child: Text(
               "Report figures shown here are sample interface data. "
-                  "They can be connected to the platform database when "
-                  "the reporting backend is implemented.",
+              "They can be connected to the platform database when "
+              "the reporting backend is implemented.",
               style: TextStyle(
                 color: Colors.blue.shade900,
                 fontSize: 13,
