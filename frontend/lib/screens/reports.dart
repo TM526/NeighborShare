@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../services/api_config.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -9,38 +14,49 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   String selectedPeriod = "Weekly";
+  Map<String, dynamic>? _summary;
+  bool _isLoading = false;
+  String? _error;
 
-  final Map<String, Map<String, String>> reportData = {
-    "Daily": {
-      "donations": "8",
-      "users": "5",
-      "requests": "12",
-      "listings": "6",
-    },
-    "Weekly": {
-      "donations": "24",
-      "users": "18",
-      "requests": "32",
-      "listings": "15",
-    },
-    "Monthly": {
-      "donations": "96",
-      "users": "65",
-      "requests": "128",
-      "listings": "48",
-    },
-  };
+  @override
+  void initState() {
+    super.initState();
+    fetchReports();
+  }
 
-  Map<String, String> get currentData {
-    return reportData[selectedPeriod]!;
+  Future<void> fetchReports() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final resp = await http.get(Uri.parse('$apiBaseUrl/reports/summary'));
+      if (resp.statusCode == 200) {
+        final json = jsonDecode(resp.body) as Map<String, dynamic>;
+        setState(() {
+          _summary = json;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'Server returned status ${resp.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   void _refreshReports() {
-    setState(() {});
-
+    fetchReports();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Report data refreshed successfully."),
+        content: Text("Refreshing report data..."),
         backgroundColor: Color(0xFF2E7D32),
       ),
     );
@@ -116,7 +132,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 title: "User Activity Report",
                 description:
                 "View user activity and engagement across the platform.",
-                value: currentData["users"]!,
+                value: (_summary != null ? '${(_summary!['totalDonors'] ?? 0) + (_summary!['totalRecipients'] ?? 0)}' : '—'),
                 label: "Active Users",
                 onTap: () {
                   _openReport("User Activity");
@@ -128,7 +144,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 title: "Donation Activity Report",
                 description:
                 "Review food donations and donation activity.",
-                value: currentData["donations"]!,
+                value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
                 label: "Donations",
                 onTap: () {
                   _openReport("Donation Activity");
@@ -140,7 +156,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 title: "Food Listing Report",
                 description:
                 "Review food listings created and their current activity.",
-                value: currentData["listings"]!,
+                value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
                 label: "Listings",
                 onTap: () {
                   _openReport("Food Listing");
@@ -152,7 +168,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 title: "Request Activity Report",
                 description:
                 "Review recipient requests and request activity.",
-                value: currentData["requests"]!,
+                value: (_summary != null ? '${_summary!['totalRequests'] ?? 0}' : '—'),
                 label: "Requests",
                 onTap: () {
                   _openReport("Request Activity");
@@ -302,22 +318,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _statCard(
           icon: Icons.volunteer_activism,
           title: "Donations",
-          value: currentData["donations"]!,
+          value: (_summary != null ? '${_summary!['totalDonors'] ?? 0}' : '—'),
         ),
         _statCard(
           icon: Icons.people,
           title: "Users",
-          value: currentData["users"]!,
+          value: (_summary != null ? '${(_summary!['totalDonors'] ?? 0) + (_summary!['totalRecipients'] ?? 0)}' : '—'),
         ),
         _statCard(
           icon: Icons.assignment,
           title: "Requests",
-          value: currentData["requests"]!,
+          value: (_summary != null ? '${_summary!['totalRequests'] ?? 0}' : '—'),
         ),
         _statCard(
           icon: Icons.restaurant,
           title: "Listings",
-          value: currentData["listings"]!,
+          value: (_summary != null ? '${_summary!['totalListings'] ?? 0}' : '—'),
         ),
       ],
     );
