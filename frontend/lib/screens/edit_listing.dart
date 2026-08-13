@@ -82,7 +82,56 @@ class _EditListingScreenState extends State<EditListingScreen> {
     return null;
   }
 
+  bool _isListingExpired() {
+    final status = widget.listing["status"]?.trim().toLowerCase();
+
+    if (status == "expired") {
+      return true;
+    }
+
+    final expiryText = widget.listing["expiry_date"]?.trim();
+
+    if (expiryText == null || expiryText.isEmpty) {
+      return false;
+    }
+
+    final expiryDate = DateTime.tryParse(expiryText);
+
+    if (expiryDate == null) {
+      return false;
+    }
+
+    final now = DateTime.now();
+
+    final today = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    );
+
+    final expiry = DateTime(
+      expiryDate.year,
+      expiryDate.month,
+      expiryDate.day,
+    );
+
+    return expiry.isBefore(today);
+  }
+
   void _saveChanges() {
+    if (_isListingExpired()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Past or expired listings cannot be edited.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }

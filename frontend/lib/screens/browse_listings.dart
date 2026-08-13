@@ -255,12 +255,30 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
         onRefresh: loadListings,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 160),
-            Center(
-              child: Text(
-                "No food listings found.",
-                style: TextStyle(fontSize: 18),
+          padding: const EdgeInsets.all(24),
+          children: [
+            const SizedBox(height: 120),
+            Icon(
+              Icons.search_off,
+              size: 72,
+              color: Colors.grey.shade500,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "No food listings found.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Try changing your search or category, or check again later.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.black54,
               ),
             ),
           ],
