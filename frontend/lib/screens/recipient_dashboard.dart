@@ -382,7 +382,9 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
                                             context,
                                             MaterialPageRoute(
                                               builder: (_) =>
-                                                  const CreateRecipientProfileScreen(),
+                                                  CreateRecipientProfileScreen(
+                                                    recipientId: widget.recipientId,
+                                                  )
                                             ),
                                           );
                                         },
@@ -420,7 +422,9 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (_) =>
-                                                const CreateRecipientProfileScreen(),
+                                                CreateRecipientProfileScreen(
+                                                  recipientId: widget.recipientId,
+                                                )
                                           ),
                                         );
                                       },
@@ -493,7 +497,9 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const CreateRecipientProfileScreen(),
+                builder: (_) => CreateRecipientProfileScreen(
+                  recipientId: widget.recipientId,
+                ),
               ),
             );
           }
