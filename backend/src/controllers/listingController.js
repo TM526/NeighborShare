@@ -400,6 +400,42 @@ const deleteListing = async (req, res) => {
     try {
         const { id } = req.params;
 
+        const adminAccountId =
+            Number(req.headers["x-admin-account-id"]);
+
+        if (
+            !Number.isInteger(adminAccountId) ||
+            adminAccountId <= 0
+        ) {
+            return res.status(401).json({
+                message:
+                    "Administrator authentication is required."
+            });
+        }
+
+        const adminResult = await pool.query(
+            `SELECT account_id, role
+             FROM user_accounts
+             WHERE account_id = $1`,
+            [adminAccountId]
+        );
+
+        if (adminResult.rows.length === 0) {
+            return res.status(401).json({
+                message:
+                    "Administrator account could not be verified."
+            });
+        }
+
+        const adminAccount = adminResult.rows[0];
+
+        if (adminAccount.role !== "Administrator") {
+            return res.status(403).json({
+                message:
+                    "Access denied. Administrator permission is required to delete listings."
+            });
+        }
+
         const result = await pool.query(
             `DELETE FROM food_listings
              WHERE listing_id = $1
@@ -418,7 +454,7 @@ const deleteListing = async (req, res) => {
             listing: result.rows[0]
         });
     } catch (error) {
-        console.error(error);
+        console.error("Delete listing error:", error);
 
         return res.status(500).json({
             message: "Error deleting food listing."

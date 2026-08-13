@@ -38,11 +38,80 @@ class _UserInformationPageState
   ];
 
   Future<void> _banUser(int index) async {
+    // Validate that the selected user exists.
+    if (index < 0 || index >= users.length) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Please select a valid user before performing the ban action.",
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      return;
+    }
+
     final user = users[index];
+
+    final name = user["name"]?.toString().trim() ?? "";
+    final email = user["email"]?.toString().trim() ?? "";
+    final role = user["role"]?.toString().trim() ?? "";
+    final status = user["status"]?.toString().trim() ?? "";
+
+    // Validate required user information.
+    if (name.isEmpty || email.isEmpty) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "The selected user does not contain valid account information.",
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      return;
+    }
+
+    // Prevent banning a user that is already banned.
+    if (status.toLowerCase() == "banned") {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "This user has already been banned.",
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+
+      return;
+    }
+
+    // Prevent an Administrator account from being banned through this screen.
+    if (role.toLowerCase() == "administrator") {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Administrator accounts cannot be banned from this screen.",
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      return;
+    }
 
     final shouldBan = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Row(
             children: [
@@ -51,29 +120,31 @@ class _UserInformationPageState
                 color: Colors.red,
               ),
               SizedBox(width: 10),
-              Text("Ban User"),
+              Text("Confirm User Ban"),
             ],
           ),
           content: Text(
-            "Are you sure you want to ban ${user["name"]}?\n\n"
-                "This user will no longer be able to use the platform.",
+            "Are you sure you want to ban $name?\n\n"
+            "Email: $email\n"
+            "Role: $role\n\n"
+            "This user will no longer be able to access the platform.",
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context, false);
+                Navigator.of(dialogContext).pop(false);
               },
               child: const Text("Cancel"),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context, true);
+                Navigator.of(dialogContext).pop(true);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
-              child: const Text("Ban User"),
+              child: const Text("Confirm Ban"),
             ),
           ],
         );
@@ -84,6 +155,8 @@ class _UserInformationPageState
       return;
     }
 
+    // Temporary UI status update.
+    // The database update is handled by the backend/database task.
     setState(() {
       users[index]["status"] = "Banned";
     });
@@ -93,7 +166,7 @@ class _UserInformationPageState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          "${user["name"]} has been banned successfully.",
+          "$name has been banned successfully.",
         ),
         backgroundColor: Colors.red,
       ),
