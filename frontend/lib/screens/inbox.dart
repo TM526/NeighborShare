@@ -7,12 +7,12 @@ import '../services/api_config.dart';
 import 'message_details.dart';
 
 class InboxScreen extends StatefulWidget {
-  final int recipientId;
+  final int donorId;
   final http.Client? httpClient;
 
   const InboxScreen({
     super.key,
-    this.recipientId = 1,
+    this.donorId = 1,
     this.httpClient,
   });
 
@@ -38,7 +38,7 @@ class _InboxScreenState extends State<InboxScreen> {
     try {
       final client = widget.httpClient ?? http.Client();
       final response = await client.get(
-        Uri.parse('$apiBaseUrl/messages/${widget.recipientId}'),
+        Uri.parse('$apiBaseUrl/messages/donor/${widget.donorId}'),
         headers: const {'Accept': 'application/json'},
       );
 
@@ -87,35 +87,45 @@ class _InboxScreenState extends State<InboxScreen> {
   List<Map<String, dynamic>> _buildConversations(
     List<Map<String, dynamic>> messages,
   ) {
-    final groupedMessages = <int, List<Map<String, dynamic>>>{};
+    final groupedMessages =
+        <int, List<Map<String, dynamic>>>{};
 
     for (final message in messages) {
-      final donorId = int.tryParse(message['donor_id'].toString());
-      if (donorId == null) continue;
-      groupedMessages.putIfAbsent(donorId, () => []).add(message);
+      final recipientId =
+          int.tryParse(message['recipient_id'].toString());
+
+      if (recipientId == null) continue;
+
+      groupedMessages
+          .putIfAbsent(recipientId, () => [])
+          .add(message);
     }
 
     return groupedMessages.entries.map((entry) {
-      final donorMessages = entry.value;
-      final unreadMessages = donorMessages
+      final recipientMessages = entry.value;
+
+      final unreadMessages = recipientMessages
           .where((message) => message['is_read'] != true)
           .toList();
-      final latestMessage = donorMessages.last;
+
+      final latestMessage = recipientMessages.last;
 
       return {
-        "name": "Donor #${entry.key}",
-        "message": latestMessage['message']?.toString() ?? '',
-        "time": _formatMessageTime(latestMessage['sent_at']),
+        "name": "Recipient #${entry.key}",
+        "message":
+            latestMessage['message']?.toString() ?? '',
+        "time":
+            _formatMessageTime(latestMessage['sent_at']),
         "unread": unreadMessages.isNotEmpty,
         "count": unreadMessages.length,
         "avatar": entry.key.toString(),
-        "message_ids": donorMessages
+        "recipient_id": entry.key,
+        "message_ids": recipientMessages
             .map((message) => message['message_id'])
             .where((id) => id != null)
             .toList(),
-        "messages": donorMessages
-            .map(_toDetailMessage)
-            .toList(),
+        "messages":
+            recipientMessages.map(_toDetailMessage).toList(),
       };
     }).toList();
   }
@@ -180,7 +190,9 @@ class _InboxScreenState extends State<InboxScreen> {
       try {
         final client = widget.httpClient ?? http.Client();
         final response = await client.patch(
-          Uri.parse('$apiBaseUrl/messages/${widget.recipientId}/read'),
+          Uri.parse(
+            '$apiBaseUrl/messages/donor/${widget.donorId}/read',
+          ),
           headers: const {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
