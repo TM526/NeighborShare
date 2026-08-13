@@ -1,15 +1,32 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../services/api_config.dart';
+import 'message_details.dart';
 
 class MessageComposeScreen extends StatefulWidget {
   final String donorName;
   final String? listingName;
   final ValueChanged<String>? onSend;
 
+  // Real IDs for sending a live message. recipientId defaults to 1, matching
+  // the temporary default used elsewhere until recipient login exists.
+  final int? donorId;
+  final int recipientId;
+
+  // Optional HTTP client for testing. If null, the package http is used.
+  final dynamic httpClient;
+
   const MessageComposeScreen({
     super.key,
     required this.donorName,
     this.listingName,
     this.onSend,
+    this.donorId,
+    this.recipientId = 1,
+    this.httpClient,
   });
 
   @override
@@ -19,6 +36,7 @@ class MessageComposeScreen extends StatefulWidget {
 class _MessageComposeScreenState extends State<MessageComposeScreen> {
   final TextEditingController _messageController = TextEditingController();
   String? _validationMessage;
+  bool _isSending = false;
 
   @override
   void dispose() {
@@ -26,7 +44,7 @@ class _MessageComposeScreenState extends State<MessageComposeScreen> {
     super.dispose();
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final message = _messageController.text.trim();
 
     if (message.isEmpty) {
@@ -36,16 +54,85 @@ class _MessageComposeScreenState extends State<MessageComposeScreen> {
       return;
     }
 
-    widget.onSend?.call(message);
     setState(() {
       _validationMessage = null;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Message ready to send.'),
-        backgroundColor: Color(0xFF2E7D32),
-      ),
-    );
+
+    widget.onSend?.call(message);
+
+    if (widget.donorId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This listing is missing a donor to message.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSending = true);
+
+    try {
+      final client = widget.httpClient ?? http.Client();
+      final response = await client
+          .post(
+            Uri.parse('$apiBaseUrl/messages'),
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'donor_id': widget.donorId,
+              'recipient_id': widget.recipientId,
+              'message': message,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (!mounted) return;
+
+      setState(() => _isSending = false);
+
+      if (response.statusCode == 201) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => MessageDetailsScreen(
+              personName: widget.donorName,
+              avatar: widget.donorName.characters.isEmpty
+                  ? '?'
+                  : widget.donorName.characters.first.toUpperCase(),
+              donorId: widget.donorId,
+              recipientId: widget.recipientId,
+            ),
+          ),
+        );
+        return;
+      }
+
+      String errorText = 'Unable to send message.';
+      if (response.body.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['message'] != null) {
+            errorText = decoded['message'].toString();
+          }
+        } catch (_) {}
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorText),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() => _isSending = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not connect to the server.')),
+      );
+
+      debugPrint('Send message error: $error');
+    }
   }
 
   @override
@@ -126,9 +213,18 @@ class _MessageComposeScreenState extends State<MessageComposeScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _sendMessage,
-              icon: const Icon(Icons.send_outlined),
-              label: const Text('Send Message'),
+              onPressed: _isSending ? null : _sendMessage,
+              icon: _isSending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send_outlined),
+              label: Text(_isSending ? 'Sending...' : 'Send Message'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2E7D32),
                 foregroundColor: Colors.white,

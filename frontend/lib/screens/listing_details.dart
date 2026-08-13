@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../services/api_config.dart';
 import 'message_compose.dart';
 import 'request_food.dart';
 
@@ -75,6 +79,7 @@ class FoodListingDetailsPage extends StatelessWidget {
     final expiryDate = _formatExpiryDate(listing['expiry_date']);
     final status = listing['status'] ?? 'Available';
     final donorName = listing['donor_name'] ?? listing['donorId'] ?? 'Community donor';
+    final donorId = int.tryParse(listing['donor_id'] ?? '');
 
     return Scaffold(
       appBar: AppBar(
@@ -190,6 +195,7 @@ class FoodListingDetailsPage extends StatelessWidget {
                       builder: (_) => MessageComposeScreen(
                         donorName: donorName,
                         listingName: foodName,
+                        donorId: donorId,
                       ),
                     ),
                   );
@@ -300,13 +306,22 @@ class FoodListingDetailsPage extends StatelessWidget {
   }
 }
 
-class ListingDetailsPage extends StatelessWidget {
+class ListingDetailsPage extends StatefulWidget {
   final Map<String, String> listing;
+  final int listingId;
 
   const ListingDetailsPage({
     super.key,
     required this.listing,
+    required this.listingId,
   });
+
+  @override
+  State<ListingDetailsPage> createState() => _ListingDetailsPageState();
+}
+
+class _ListingDetailsPageState extends State<ListingDetailsPage> {
+  bool _isSubmitting = false;
 
   Color _statusColor(String status) {
     switch (status) {
@@ -334,12 +349,96 @@ class ListingDetailsPage extends StatelessWidget {
     }
   }
 
+  Future<void> _updateModerationStatus(String status) async {
+    setState(() => _isSubmitting = true);
+
+    try {
+      final response = await http
+          .put(
+            Uri.parse(
+              '$apiBaseUrl/listings/${widget.listingId}/moderation-status',
+            ),
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode({'moderation_status': status}),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (!mounted) return;
+
+      setState(() => _isSubmitting = false);
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Listing marked as $status.'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+        Navigator.pop(context, true);
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to update the listing.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() => _isSubmitting = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not connect to the server.')),
+      );
+
+      debugPrint('Update moderation status error: $error');
+    }
+  }
+
+  Future<void> _removeListing() async {
+    setState(() => _isSubmitting = true);
+
+    try {
+      final response = await http
+          .delete(Uri.parse('$apiBaseUrl/listings/${widget.listingId}'))
+          .timeout(const Duration(seconds: 20));
+
+      if (!mounted) return;
+
+      setState(() => _isSubmitting = false);
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Listing removed.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pop(context, true);
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to remove the listing.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() => _isSubmitting = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not connect to the server.')),
+      );
+
+      debugPrint('Remove listing error: $error');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final title = listing["title"] ?? "Unknown Listing";
-    final reportedBy = listing["reportedBy"] ?? "Unknown";
-    final reason = listing["reason"] ?? "No reason provided";
-    final status = listing["status"] ?? "Unknown";
+    final title = widget.listing["food_name"] ?? "Unknown Listing";
+    final reportedBy = widget.listing["flagged_by"] ?? "Unknown";
+    final reason = widget.listing["flag_reason"] ?? "No reason provided";
+    final status = widget.listing["moderation_status"] ?? "Unknown";
 
     return Scaffold(
       appBar: AppBar(
@@ -436,16 +535,9 @@ class ListingDetailsPage extends StatelessWidget {
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        "Listing marked as under review.",
-                      ),
-                      backgroundColor: Colors.blue,
-                    ),
-                  );
-                },
+                onPressed: _isSubmitting
+                    ? null
+                    : () => _updateModerationStatus('Under Review'),
                 icon: const Icon(Icons.rate_review_outlined),
                 label: const Text(
                   "Mark as Under Review",
@@ -470,9 +562,9 @@ class ListingDetailsPage extends StatelessWidget {
               width: double.infinity,
               height: 52,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  _confirmRemoval(context, title);
-                },
+                onPressed: _isSubmitting
+                    ? null
+                    : () => _confirmRemoval(context, title),
                 icon: const Icon(
                   Icons.delete_outline,
                   color: Colors.red,
@@ -616,15 +708,7 @@ class ListingDetailsPage extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "Listing removal request submitted.",
-                    ),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                _removeListing();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

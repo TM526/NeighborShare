@@ -1,15 +1,27 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../services/api_config.dart';
 
 class MessageDetailsScreen extends StatefulWidget {
   final String personName;
   final String avatar;
   final List<Map<String, dynamic>>? initialMessages;
 
+  // When both are provided, the screen fetches and sends real messages
+  // for this donor/recipient conversation instead of using sample data.
+  final int? donorId;
+  final int? recipientId;
+
   const MessageDetailsScreen({
     super.key,
     required this.personName,
     required this.avatar,
     this.initialMessages,
+    this.donorId,
+    this.recipientId,
   });
 
   @override
@@ -27,13 +39,67 @@ class _MessageDetailsScreenState
 
   final List<Map<String, dynamic>> _messages = [];
 
+  bool get _isLiveConversation =>
+      widget.donorId != null && widget.recipientId != null;
+
+  bool _isLoading = false;
+  bool _isSending = false;
+
   @override
   void initState() {
     super.initState();
-    if (widget.initialMessages != null) {
+    if (_isLiveConversation) {
+      _fetchConversation();
+    } else if (widget.initialMessages != null) {
       _messages.addAll(widget.initialMessages!);
     } else {
       _loadSampleMessages();
+    }
+  }
+
+  Future<void> _fetchConversation() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse(
+              '$apiBaseUrl/messages/conversation'
+              '?donorId=${widget.donorId}&recipientId=${widget.recipientId}',
+            ),
+            headers: const {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded is List) {
+          setState(() {
+            _messages
+              ..clear()
+              ..addAll(decoded.whereType<Map>().map(
+                    (item) => {
+                      'message': item['message'],
+                      'isMe': item['donor_id'] == widget.donorId,
+                      'time': item['sent_at']?.toString() ?? '',
+                    },
+                  ));
+            _isLoading = false;
+          });
+          _scrollToBottom();
+          return;
+        }
+      }
+
+      setState(() => _isLoading = false);
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+      debugPrint('Fetch conversation error: $error');
     }
   }
 
@@ -116,7 +182,12 @@ class _MessageDetailsScreenState
     final message =
     _messageController.text.trim();
 
-    if (message.isEmpty) {
+    if (message.isEmpty || _isSending) {
+      return;
+    }
+
+    if (_isLiveConversation) {
+      _sendLiveMessage(message);
       return;
     }
 
@@ -131,6 +202,61 @@ class _MessageDetailsScreenState
     });
 
     _scrollToBottom();
+  }
+
+  Future<void> _sendLiveMessage(String message) async {
+    setState(() => _isSending = true);
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$apiBaseUrl/messages'),
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'donor_id': widget.donorId,
+              'recipient_id': widget.recipientId,
+              'message': message,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (!mounted) return;
+
+      setState(() => _isSending = false);
+
+      if (response.statusCode == 201) {
+        _messageController.clear();
+        await _fetchConversation();
+        return;
+      }
+
+      String errorText = 'Unable to send message.';
+      if (response.body.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['message'] != null) {
+            errorText = decoded['message'].toString();
+          }
+        } catch (_) {}
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorText),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() => _isSending = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not connect to the server.')),
+      );
+
+      debugPrint('Send message error: $error');
+    }
   }
 
   String _currentTime() {
@@ -212,7 +338,9 @@ class _MessageDetailsScreenState
       body: Column(
         children: [
           Expanded(
-            child: _messages.isEmpty
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
                 ? _buildEmptyChat()
                 : ListView.builder(
               controller:
@@ -399,8 +527,17 @@ class _MessageDetailsScreenState
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                onPressed: _sendMessage,
-                icon: const Icon(Icons.send),
+                onPressed: _isSending ? null : _sendMessage,
+                icon: _isSending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send),
                 color: Colors.white,
                 tooltip: "Send message",
               ),

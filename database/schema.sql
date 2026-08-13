@@ -96,6 +96,20 @@ CREATE TABLE food_listings (
             )
         ),
 
+    is_flagged BOOLEAN NOT NULL DEFAULT FALSE,
+    flag_reason TEXT,
+    flagged_by VARCHAR(150),
+    flagged_at TIMESTAMP,
+
+    moderation_status VARCHAR(20) NOT NULL DEFAULT 'Pending'
+        CHECK (
+            moderation_status IN (
+                'Pending',
+                'Under Review',
+                'Resolved'
+            )
+        ),
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_listing_donor
@@ -182,3 +196,18 @@ CREATE TABLE messages (
 --   WHERE (donor_id = $1 AND recipient_id = $2)
 --      OR (donor_id = $2 AND recipient_id = $1)
 --   ORDER BY sent_at ASC;
+
+--Incident_reports--
+CREATE TABLE incident_reports (
+    incident_id SERIAL PRIMARY KEY,
+
+    title VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    reported_by VARCHAR(150),
+
+    status VARCHAR(20) NOT NULL DEFAULT 'Open'
+        CHECK (status IN ('Open', 'Investigating', 'Resolved')),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

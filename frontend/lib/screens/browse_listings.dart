@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../services/api_config.dart';
 import 'listing_details.dart';
+import 'message_compose.dart';
 import 'request_food.dart';
 
 class BrowseListingsScreen extends StatefulWidget {
@@ -366,32 +367,65 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                           : Colors.orange.shade100,
                     ),
                     const SizedBox(height: 15),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E7D32),
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: Colors.grey.shade300,
-                          disabledForegroundColor: Colors.grey.shade600,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        onPressed: !isAvailable
-                            ? null
-                            : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => RequestFoodScreen(
-                                      foodItem: food,
-                                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MessageComposeScreen(
+                                    donorName: food["donor_name"] ??
+                                        "Community donor",
+                                    listingName: food["name"],
+                                    donorId:
+                                        int.tryParse(food["donor_id"] ?? ""),
                                   ),
-                                );
-                              },
-                        child: Text(
-                          isAvailable ? "Request Food" : "Not Available",
+                                ),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF2E7D32),
+                              side: const BorderSide(
+                                color: Color(0xFF2E7D32),
+                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            icon: const Icon(Icons.message_outlined, size: 18),
+                            label: const Text("Message"),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E7D32),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey.shade300,
+                              disabledForegroundColor: Colors.grey.shade600,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: !isAvailable
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => RequestFoodScreen(
+                                          foodItem: food,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            child: Text(
+                              isAvailable ? "Request Food" : "Not Available",
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
