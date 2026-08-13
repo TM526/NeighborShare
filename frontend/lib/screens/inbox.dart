@@ -1,8 +1,20 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../services/api_config.dart';
 import 'message_details.dart';
 
 class InboxScreen extends StatefulWidget {
-  const InboxScreen({super.key});
+  final int recipientId;
+  final http.Client? httpClient;
+
+  const InboxScreen({
+    super.key,
+    this.recipientId = 1,
+    this.httpClient,
+  });
 
   @override
   State<InboxScreen> createState() =>
@@ -10,46 +22,117 @@ class InboxScreen extends StatefulWidget {
 }
 
 class _InboxScreenState extends State<InboxScreen> {
-  final List<Map<String, dynamic>> _conversations = [
-    {
-      "name": "Sarah Lee",
-      "message":
-      "Hi! Is the vegetable soup still available?",
-      "time": "5 min ago",
-      "unread": true,
-      "count": 2,
-      "avatar": "S",
-    },
-    {
-      "name": "John Doe",
-      "message":
-      "Thank you for accepting my food request!",
-      "time": "1 hour ago",
-      "unread": true,
-      "count": 1,
-      "avatar": "J",
-    },
-    {
-      "name": "Michael Smith",
-      "message":
-      "I will pick up the bread tomorrow.",
-      "time": "3 hours ago",
-      "unread": false,
-      "count": 0,
-      "avatar": "M",
-    },
-    {
-      "name": "Jessica Brown",
-      "message":
-      "Thank you for helping our community.",
-      "time": "Yesterday",
-      "unread": false,
-      "count": 0,
-      "avatar": "J",
-    },
-  ];
+  final List<Map<String, dynamic>> _conversations = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   String _searchText = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    try {
+      final client = widget.httpClient ?? http.Client();
+      final response = await client.get(
+        Uri.parse('$apiBaseUrl/messages/${widget.recipientId}'),
+        headers: const {'Accept': 'application/json'},
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode != 200) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Unable to load messages.';
+        });
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'The server returned an unexpected response.';
+        });
+        return;
+      }
+
+      final messages = decoded
+          .whereType<Map>()
+          .map((message) => Map<String, dynamic>.from(message))
+          .toList();
+
+      setState(() {
+        _conversations
+          ..clear()
+          ..addAll(_buildConversations(messages));
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Could not connect to the server.';
+      });
+      debugPrint('Load messages error: $error');
+    }
+  }
+
+  List<Map<String, dynamic>> _buildConversations(
+    List<Map<String, dynamic>> messages,
+  ) {
+    final groupedMessages = <int, List<Map<String, dynamic>>>{};
+
+    for (final message in messages) {
+      final donorId = int.tryParse(message['donor_id'].toString());
+      if (donorId == null) continue;
+      groupedMessages.putIfAbsent(donorId, () => []).add(message);
+    }
+
+    return groupedMessages.entries.map((entry) {
+      final donorMessages = entry.value;
+      final unreadMessages = donorMessages
+          .where((message) => message['is_read'] != true)
+          .toList();
+      final latestMessage = donorMessages.last;
+
+      return {
+        "name": "Donor #${entry.key}",
+        "message": latestMessage['message']?.toString() ?? '',
+        "time": _formatMessageTime(latestMessage['sent_at']),
+        "unread": unreadMessages.isNotEmpty,
+        "count": unreadMessages.length,
+        "avatar": entry.key.toString(),
+        "message_ids": donorMessages
+            .map((message) => message['message_id'])
+            .where((id) => id != null)
+            .toList(),
+        "messages": donorMessages
+            .map(_toDetailMessage)
+            .toList(),
+      };
+    }).toList();
+  }
+
+  Map<String, dynamic> _toDetailMessage(Map<String, dynamic> message) {
+    return {
+      "message": message['message']?.toString() ?? '',
+      "isMe": false,
+      "time": _formatMessageTime(message['sent_at']),
+    };
+  }
+
+  String _formatMessageTime(dynamic value) {
+    final parsed = DateTime.tryParse(value?.toString() ?? '');
+    if (parsed == null) return '';
+    return '${parsed.month}/${parsed.day} ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+  }
 
   List<Map<String, dynamic>>
   get _filteredConversations {
@@ -87,13 +170,41 @@ class _InboxScreenState extends State<InboxScreen> {
   // OPEN ACTUAL CONVERSATION
   // ==========================================
 
-  void _openConversation(
+  Future<void> _openConversation(
       Map<String, dynamic> conversation,
-      ) {
-    setState(() {
-      conversation["unread"] = false;
-      conversation["count"] = 0;
-    });
+      ) async {
+    final messageIds = (conversation['message_ids'] as List<dynamic>?) ?? [];
+    final unread = conversation['unread'] == true;
+
+    if (unread && messageIds.isNotEmpty) {
+      try {
+        final client = widget.httpClient ?? http.Client();
+        final response = await client.patch(
+          Uri.parse('$apiBaseUrl/messages/${widget.recipientId}/read'),
+          headers: const {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'message_ids': messageIds}),
+        );
+
+        if (!mounted) return;
+        if (response.statusCode != 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Unable to mark messages as read.')),
+          );
+          return;
+        }
+
+        setState(() {
+          conversation['unread'] = false;
+          conversation['count'] = 0;
+        });
+      } catch (error) {
+        debugPrint('Mark messages read error: $error');
+        return;
+      }
+    }
 
     final String name =
     conversation["name"] as String;
@@ -107,6 +218,11 @@ class _InboxScreenState extends State<InboxScreen> {
         builder: (_) => MessageDetailsScreen(
           personName: name,
           avatar: avatar,
+          initialMessages:
+              (conversation['messages'] as List<dynamic>?)
+                  ?.whereType<Map>()
+                  .map((message) => Map<String, dynamic>.from(message))
+                  .toList(),
         ),
       ),
     );
@@ -192,7 +308,9 @@ class _InboxScreenState extends State<InboxScreen> {
         ],
       ),
 
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
         children: [
           // ==========================================
           // SEARCH
@@ -308,7 +426,9 @@ class _InboxScreenState extends State<InboxScreen> {
           // ==========================================
 
           Expanded(
-            child: conversations.isEmpty
+            child: _errorMessage != null
+                ? Center(child: Text(_errorMessage!))
+                : conversations.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
               padding:

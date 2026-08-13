@@ -16,6 +16,26 @@ const allowedStatuses = [
     "Cancelled"
 ];
 
+const normalizeExpiryDate = (value) => {
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const expiryDate = String(value).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(expiryDate)) {
+        return undefined;
+    }
+
+    const [year, month, day] = expiryDate.split("-").map(Number);
+    const parsedDate = new Date(Date.UTC(year, month - 1, day));
+
+    return parsedDate.getUTCFullYear() === year &&
+        parsedDate.getUTCMonth() === month - 1 &&
+        parsedDate.getUTCDate() === day
+        ? expiryDate
+        : undefined;
+};
+
 const createListing = async (req, res) => {
     try {
         const {
@@ -24,11 +44,19 @@ const createListing = async (req, res) => {
             category,
             quantity,
             pickup_location,
-            description
+            description,
+            expiry_date
         } = req.body;
 
         const cleanQuantity = String(quantity ?? "").trim();
         const accountId = Number(account_id);
+        const cleanExpiryDate = normalizeExpiryDate(expiry_date);
+
+        if (expiry_date !== undefined && cleanExpiryDate === undefined) {
+            return res.status(400).json({
+                message: "Expiry date must be a valid YYYY-MM-DD date."
+            });
+        }
 
         if (
             !Number.isInteger(accountId) ||
@@ -76,9 +104,10 @@ const createListing = async (req, res) => {
                 quantity,
                 pickup_location,
                 description,
+                expiry_date,
                 status
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`,
             [
                 donorId,
@@ -87,6 +116,7 @@ const createListing = async (req, res) => {
                 cleanQuantity,
                 pickup_location.trim(),
                 description?.trim() || null,
+                cleanExpiryDate,
                 "Available"
             ]
         );
@@ -207,10 +237,18 @@ const updateListing = async (req, res) => {
             quantity,
             pickup_location,
             description,
-            status
+            status,
+            expiry_date
         } = req.body;
 
         const cleanQuantity = String(quantity ?? "").trim();
+        const cleanExpiryDate = normalizeExpiryDate(expiry_date);
+
+        if (expiry_date !== undefined && cleanExpiryDate === undefined) {
+            return res.status(400).json({
+                message: "Expiry date must be a valid YYYY-MM-DD date."
+            });
+        }
 
         if (
             !food_name?.trim() ||
@@ -243,8 +281,9 @@ const updateListing = async (req, res) => {
                  quantity = $3,
                  pickup_location = $4,
                  description = $5,
-                 status = $6
-             WHERE listing_id = $7
+                 status = $6,
+                 expiry_date = COALESCE($7, expiry_date)
+             WHERE listing_id = $8
              RETURNING *`,
             [
                 food_name.trim(),
@@ -253,6 +292,7 @@ const updateListing = async (req, res) => {
                 pickup_location.trim(),
                 description?.trim() || null,
                 status.trim(),
+                cleanExpiryDate,
                 id
             ]
         );

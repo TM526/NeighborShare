@@ -83,6 +83,8 @@ CREATE TABLE food_listings (
 
     description TEXT,
 
+    expiry_date DATE,
+
     status VARCHAR(20) NOT NULL DEFAULT 'Available'
         CHECK (
             status IN (
@@ -138,3 +140,45 @@ CREATE TABLE food_requests (
     CONSTRAINT unique_recipient_listing_request
         UNIQUE (listing_id, recipient_id)
 );
+
+--Messages--
+CREATE TABLE messages (
+    message_id SERIAL PRIMARY KEY,
+    donor_id INTEGER NOT NULL,
+    recipient_id INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+
+    CONSTRAINT fk_messages_donor
+        FOREIGN KEY (donor_id)
+        REFERENCES donor_profiles(donor_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_messages_recipient
+        FOREIGN KEY (recipient_id)
+        REFERENCES recipient_profiles(recipient_id)
+        ON DELETE CASCADE
+);
+
+--Recommended Queries for Messages--
+
+-- [R7] Retrieve messages for a recipient (accepts empty result set)
+-- Sorts by sent_at (creation time) in ascending order
+-- Returns: message_id, donor_id, recipient_id, message content, sent_at timestamp
+-- Query:
+--   SELECT message_id, donor_id, recipient_id, message, sent_at, is_read
+--   FROM messages
+--   WHERE recipient_id = $1
+--   ORDER BY sent_at ASC;
+
+-- [R7] Retrieve messages between two users in a conversation
+-- Sorts by sent_at to maintain message order
+-- Returns: message_id, sender_id, receiver_id, message content, sent_at timestamp
+-- Handles empty conversations (returns empty result set gracefully)
+-- Query:
+--   SELECT message_id, donor_id, recipient_id, message, sent_at, is_read
+--   FROM messages
+--   WHERE (donor_id = $1 AND recipient_id = $2)
+--      OR (donor_id = $2 AND recipient_id = $1)
+--   ORDER BY sent_at ASC;

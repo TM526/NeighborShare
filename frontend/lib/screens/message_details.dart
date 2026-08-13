@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class MessageDetailsScreen extends StatefulWidget {
   final String personName;
   final String avatar;
+  final List<Map<String, dynamic>>? initialMessages;
 
   const MessageDetailsScreen({
     super.key,
     required this.personName,
     required this.avatar,
+    this.initialMessages,
   });
 
   @override
@@ -28,7 +30,11 @@ class _MessageDetailsScreenState
   @override
   void initState() {
     super.initState();
-    _loadSampleMessages();
+    if (widget.initialMessages != null) {
+      _messages.addAll(widget.initialMessages!);
+    } else {
+      _loadSampleMessages();
+    }
   }
 
   void _loadSampleMessages() {

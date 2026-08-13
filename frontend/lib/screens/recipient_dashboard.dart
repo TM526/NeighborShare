@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -10,8 +11,10 @@ import 'recipient_profile.dart';
 class RecipientDashboardScreen extends StatefulWidget {
   // Temporary default for testing until recipient login/session is added.
   final int recipientId;
+  // Optional HTTP client for testing. If null, the package http will be used.
+  final dynamic httpClient;
 
-  const RecipientDashboardScreen({super.key, this.recipientId = 1});
+  const RecipientDashboardScreen({super.key, this.recipientId = 1, this.httpClient});
 
   @override
   State<RecipientDashboardScreen> createState() =>
@@ -20,30 +23,33 @@ class RecipientDashboardScreen extends StatefulWidget {
 
 class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
   bool _isLoading = true;
+  bool _isPollingRequest = false;
   String? _errorMessage;
+  String? _pollingErrorMessage;
   List<Map<String, dynamic>> _requests = [];
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _fetchRequests();
+    _startPolling();
   }
 
-  Future<void> _fetchRequests() async {
+  Future<void> _fetchRequests({bool notifyStatusChanges = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final response = await http
-          .get(
-            Uri.parse(
-              '$apiBaseUrl/recipients/${widget.recipientId}/requests',
-            ),
-            headers: const {'Accept': 'application/json'},
-          )
-          .timeout(const Duration(seconds: 20));
+      final client = widget.httpClient ?? http.Client();
+      final response = await client.get(
+        Uri.parse(
+          '$apiBaseUrl/recipients/${widget.recipientId}/requests',
+        ),
+        headers: const {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 20));
 
       if (!mounted) return;
 
@@ -51,13 +57,22 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
         final decoded = jsonDecode(response.body);
 
         if (decoded is List) {
+          final fetchedRequests = decoded
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList();
+          final statusNotifications = notifyStatusChanges
+              ? _statusChangeNotifications(fetchedRequests)
+              : <String>[];
+
           setState(() {
-            _requests = decoded
-                .whereType<Map>()
-                .map((item) => Map<String, dynamic>.from(item))
-                .toList();
+            _requests = fetchedRequests;
             _isLoading = false;
+            _pollingErrorMessage = null;
           });
+          for (final notification in statusNotifications) {
+            _showStatusNotification(notification);
+          }
           return;
         }
 
@@ -82,6 +97,146 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
 
       debugPrint('Fetch recipient requests error: $error');
     }
+  }
+
+  void _startPolling() {
+    const pollingInterval = Duration(seconds: 30);
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(pollingInterval, (_) {
+      _pollForRequestUpdates();
+    });
+  }
+
+  Future<void> _pollForRequestUpdates() async {
+    if (!mounted || _isPollingRequest) {
+      return;
+    }
+
+    _isPollingRequest = true;
+
+    try {
+      final client = widget.httpClient ?? http.Client();
+      final response = await client.get(
+        Uri.parse(
+          '$apiBaseUrl/recipients/${widget.recipientId}/requests',
+        ),
+        headers: const {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 20));
+
+      if (!mounted) return;
+
+      if (response.statusCode != 200) {
+        if (_pollingErrorMessage == null) {
+          setState(() {
+            _pollingErrorMessage =
+                'Unable to refresh request status. Retaining current data.';
+          });
+        }
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! List) {
+        if (_pollingErrorMessage == null) {
+          setState(() {
+            _pollingErrorMessage =
+                'Invalid data received while refreshing request status.';
+          });
+        }
+        return;
+      }
+
+      final fetchedRequests = decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      final statusNotifications = _statusChangeNotifications(fetchedRequests);
+
+      if (!_requestsAreEqual(_requests, fetchedRequests)) {
+        setState(() {
+          _requests = fetchedRequests;
+          _pollingErrorMessage = null;
+        });
+      }
+
+      for (final notification in statusNotifications) {
+        _showStatusNotification(notification);
+      }
+    } catch (error) {
+      if (!mounted) return;
+
+      if (_pollingErrorMessage == null) {
+        setState(() {
+          _pollingErrorMessage =
+              'Unable to refresh request status. Retaining current data.';
+        });
+      }
+
+      debugPrint('Polling recipient requests error: $error');
+    } finally {
+      _isPollingRequest = false;
+    }
+  }
+
+  List<String> _statusChangeNotifications(
+    List<Map<String, dynamic>> fetchedRequests,
+  ) {
+    final previousStatuses = <dynamic, String>{
+      for (final request in _requests)
+        request['request_id']: request['request_status']?.toString() ?? '',
+    };
+
+    return fetchedRequests
+        .where((request) => previousStatuses.containsKey(request['request_id']))
+        .map((request) {
+          final previousStatus = previousStatuses[request['request_id']];
+          final currentStatus = request['request_status']?.toString() ?? '';
+
+          if (previousStatus == currentStatus) return null;
+          if (currentStatus == 'Approved') {
+            return 'Your food request was approved.';
+          }
+          if (currentStatus == 'Rejected') {
+            return 'Your food request was rejected.';
+          }
+          return null;
+        })
+        .whereType<String>()
+        .toList();
+  }
+
+  void _showStatusNotification(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF2E7D32),
+      ),
+    );
+  }
+
+  bool _requestsAreEqual(
+    List<Map<String, dynamic>> current,
+    List<Map<String, dynamic>> next,
+  ) {
+    if (current.length != next.length) {
+      return false;
+    }
+
+    for (var i = 0; i < current.length; i++) {
+      final currentRequest = current[i];
+      final nextRequest = next[i];
+
+      if (currentRequest['request_id'] != nextRequest['request_id'] ||
+          currentRequest['request_status'] != nextRequest['request_status']) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   Color _statusColor(String status) {
@@ -117,6 +272,12 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
   }
 
   @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isSmallScreen = screenWidth < 400;
@@ -145,151 +306,162 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
         actions: [
           IconButton(
             tooltip: 'Refresh requests',
-            onPressed: _isLoading ? null : _fetchRequests,
+            onPressed: _isLoading ? null : () => _fetchRequests(notifyStatusChanges: true),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _fetchRequests,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildWelcomeSection(isSmallScreen),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      'Quick Actions',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 20 : 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    isLargeScreen
-                        ? Row(
-                            children: [
-                              Expanded(
-                                child: _buildActionCard(
-                                  context: context,
-                                  icon: Icons.search,
-                                  title: 'Browse Food',
-                                  description:
-                                      'Search available food donations near you.',
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const BrowseListingsScreen(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _buildActionCard(
-                                  context: context,
-                                  icon: Icons.person_outline,
-                                  title: 'My Profile',
-                                  description:
-                                      'View or update your recipient information.',
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const CreateRecipientProfileScreen(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              _buildActionCard(
-                                context: context,
-                                icon: Icons.search,
-                                title: 'Browse Food',
-                                description:
-                                    'Search available food donations near you.',
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const BrowseListingsScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 14),
-                              _buildActionCard(
-                                context: context,
-                                icon: Icons.person_outline,
-                                title: 'My Profile',
-                                description:
-                                    'View or update your recipient information.',
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const CreateRecipientProfileScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
+        child: Column(
+          children: [
+            if (_pollingErrorMessage != null)
+              Container(
+                width: double.infinity,
+                color: Colors.yellow[700],
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                child: Text(
+                  _pollingErrorMessage!,
+                  style: const TextStyle(color: Colors.black87),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => _fetchRequests(notifyStatusChanges: true),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 900),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildWelcomeSection(isSmallScreen),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Quick Actions',
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 20 : 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-
-                    const SizedBox(height: 28),
-
-                    Text(
-                      'My Requests',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 20 : 24,
-                        fontWeight: FontWeight.bold,
+                          const SizedBox(height: 14),
+                          isLargeScreen
+                              ? Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildActionCard(
+                                        context: context,
+                                        icon: Icons.search,
+                                        title: 'Browse Food',
+                                        description:
+                                            'Search available food donations near you.',
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const BrowseListingsScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: _buildActionCard(
+                                        context: context,
+                                        icon: Icons.person_outline,
+                                        title: 'My Profile',
+                                        description:
+                                            'View or update your recipient information.',
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const CreateRecipientProfileScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    _buildActionCard(
+                                      context: context,
+                                      icon: Icons.search,
+                                      title: 'Browse Food',
+                                      description:
+                                          'Search available food donations near you.',
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const BrowseListingsScreen(),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 14),
+                                    _buildActionCard(
+                                      context: context,
+                                      icon: Icons.person_outline,
+                                      title: 'My Profile',
+                                      description:
+                                          'View or update your recipient information.',
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const CreateRecipientProfileScreen(),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                          const SizedBox(height: 28),
+                          Text(
+                            'My Requests',
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 20 : 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _buildRequestsSection(
+                            requests: activeRequests,
+                            emptyMessage: 'No active requests right now.',
+                          ),
+                          const SizedBox(height: 28),
+                          Text(
+                            'Request History',
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 20 : 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _buildRequestsSection(
+                            requests: pastRequests,
+                            emptyMessage:
+                                'Completed food requests will appear here.',
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 14),
-
-                    _buildRequestsSection(
-                      requests: activeRequests,
-                      emptyMessage: 'No active requests right now.',
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    Text(
-                      'Request History',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 20 : 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    _buildRequestsSection(
-                      requests: pastRequests,
-                      emptyMessage: 'Completed food requests will appear here.',
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
       bottomNavigationBar: NavigationBar(

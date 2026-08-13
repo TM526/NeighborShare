@@ -114,6 +114,15 @@ const getAllFoodRequests = async (req, res) => {
 const getFoodRequestById = async (req, res) => {
     try {
         const { id } = req.params;
+        const { recipient_id: recipientId } = req.query || {};
+
+        const parsedRecipientId = Number(recipientId);
+
+        if (!Number.isInteger(parsedRecipientId) || parsedRecipientId <= 0) {
+            return res.status(400).json({
+                message: "A valid recipient ID is required to verify request ownership."
+            });
+        }
 
         const result = await pool.query(
             `SELECT
@@ -135,7 +144,15 @@ const getFoodRequestById = async (req, res) => {
             });
         }
 
-        return res.status(200).json(result.rows[0]);
+        const request = result.rows[0];
+
+        if (String(request.recipient_id) !== String(parsedRecipientId)) {
+            return res.status(403).json({
+                message: "Request does not belong to this recipient."
+            });
+        }
+
+        return res.status(200).json(request);
     } catch (error) {
         console.error(error);
 
