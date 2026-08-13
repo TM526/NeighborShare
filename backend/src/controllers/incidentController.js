@@ -61,6 +61,14 @@ const updateIncidentStatus = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
+        const incidentId = Number(id);
+
+        if (!Number.isInteger(incidentId) || incidentId <= 0) {
+            return res.status(400).json({
+                message: "A valid incident ID is required."
+            });
+        }
+
         if (!status?.trim()) {
             return res.status(400).json({
                 message: "Status is required."
@@ -81,7 +89,7 @@ const updateIncidentStatus = async (req, res) => {
                  updated_at = CURRENT_TIMESTAMP
              WHERE incident_id = $2
              RETURNING *`,
-            [cleanStatus, id]
+            [cleanStatus, incidentId]
         );
 
         if (result.rows.length === 0) {
