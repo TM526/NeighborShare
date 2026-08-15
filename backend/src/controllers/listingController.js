@@ -36,6 +36,32 @@ const normalizeExpiryDate = (value) => {
         : undefined;
 };
 
+const isPastExpiryDate = (expiryDate) => {
+    if (!expiryDate) {
+        return false;
+    }
+
+    const today = new Date();
+
+    const todayUtc = Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate()
+    );
+
+    const [year, month, day] = expiryDate
+        .split("-")
+        .map(Number);
+
+    const expiryUtc = Date.UTC(
+        year,
+        month - 1,
+        day
+    );
+
+    return expiryUtc < todayUtc;
+};
+
 const createListing = async (req, res) => {
     try {
         const {
@@ -55,6 +81,12 @@ const createListing = async (req, res) => {
         if (expiry_date !== undefined && cleanExpiryDate === undefined) {
             return res.status(400).json({
                 message: "Expiry date must be a valid YYYY-MM-DD date."
+            });
+        }
+
+        if (isPastExpiryDate(cleanExpiryDate)) {
+            return res.status(400).json({
+                message: "Expiry date cannot be in the past."
             });
         }
 
@@ -231,6 +263,51 @@ const updateListing = async (req, res) => {
     try {
         const { id } = req.params;
 
+        const existingListingResult = await pool.query(
+            `SELECT listing_id, expiry_date, status
+            FROM food_listings
+            WHERE listing_id = $1`,
+            [id]
+        );
+
+        if (existingListingResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Food listing not found."
+            });
+        }
+
+        const existingListing = existingListingResult.rows[0];
+
+        if (existingListing.status === "Expired") {
+            return res.status(400).json({
+                message: "Expired listings cannot be edited."
+            });
+        }
+
+        if (existingListing.expiry_date) {
+            const today = new Date();
+
+            const todayUtc = Date.UTC(
+                today.getUTCFullYear(),
+                today.getUTCMonth(),
+                today.getUTCDate()
+            );
+
+            const expiryDate = new Date(existingListing.expiry_date);
+
+            const expiryUtc = Date.UTC(
+                expiryDate.getUTCFullYear(),
+                expiryDate.getUTCMonth(),
+                expiryDate.getUTCDate()
+            );
+
+            if (expiryUtc < todayUtc) {
+                return res.status(400).json({
+                    message: "Past listings cannot be edited."
+                });
+            }
+        }
+
         const {
             food_name,
             category,
@@ -247,6 +324,12 @@ const updateListing = async (req, res) => {
         if (expiry_date !== undefined && cleanExpiryDate === undefined) {
             return res.status(400).json({
                 message: "Expiry date must be a valid YYYY-MM-DD date."
+            });
+        }
+
+        if (isPastExpiryDate(cleanExpiryDate)) {
+            return res.status(400).json({
+                message: "Expiry date cannot be in the past."
             });
         }
 
@@ -317,6 +400,42 @@ const deleteListing = async (req, res) => {
     try {
         const { id } = req.params;
 
+        const adminAccountId =
+            Number(req.headers["x-admin-account-id"]);
+
+        if (
+            !Number.isInteger(adminAccountId) ||
+            adminAccountId <= 0
+        ) {
+            return res.status(401).json({
+                message:
+                    "Administrator authentication is required."
+            });
+        }
+
+        const adminResult = await pool.query(
+            `SELECT account_id, role
+             FROM user_accounts
+             WHERE account_id = $1`,
+            [adminAccountId]
+        );
+
+        if (adminResult.rows.length === 0) {
+            return res.status(401).json({
+                message:
+                    "Administrator account could not be verified."
+            });
+        }
+
+        const adminAccount = adminResult.rows[0];
+
+        if (adminAccount.role !== "Administrator") {
+            return res.status(403).json({
+                message:
+                    "Access denied. Administrator permission is required to delete listings."
+            });
+        }
+
         const result = await pool.query(
             `DELETE FROM food_listings
              WHERE listing_id = $1
@@ -335,7 +454,7 @@ const deleteListing = async (req, res) => {
             listing: result.rows[0]
         });
     } catch (error) {
-        console.error(error);
+        console.error("Delete listing error:", error);
 
         return res.status(500).json({
             message: "Error deleting food listing."

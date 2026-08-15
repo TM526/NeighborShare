@@ -114,6 +114,17 @@ class _RequestReviewScreenState extends State<RequestReviewScreen> {
     Map<String, dynamic> request,
     String newStatus,
   ) async {
+
+    final currentStatus =
+      request['request_status']?.toString().trim().toLowerCase();
+
+    if (newStatus == 'Approved' && currentStatus != 'pending') {
+      _showError(
+        'This request has already been processed and cannot be approved again.',
+      );
+      return;
+    }
+    
     final requestId = request['request_id'];
     final foodName = _readValue(request, 'food_name', fallback: 'this item');
     final recipientName =

@@ -19,6 +19,54 @@ const containsProfanity = (text) => {
     );
 };
 
+const getMessagesByDonor = async (req, res) => {
+    try {
+        const { donorId } = req.params;
+        const parsedDonorId = Number(donorId);
+
+        if (!Number.isInteger(parsedDonorId) || parsedDonorId <= 0) {
+            return res.status(400).json({
+                message: "A valid donor ID is required."
+            });
+        }
+
+        const donorResult = await pool.query(
+            `SELECT donor_id
+             FROM donor_profiles
+             WHERE donor_id = $1`,
+            [parsedDonorId]
+        );
+
+        if (donorResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Donor profile not found."
+            });
+        }
+
+        const result = await pool.query(
+            `SELECT
+                message_id,
+                donor_id,
+                recipient_id,
+                message,
+                sent_at,
+                is_read
+             FROM messages
+             WHERE donor_id = $1
+             ORDER BY sent_at ASC`,
+            [parsedDonorId]
+        );
+
+        return res.status(200).json(result.rows);
+    } catch (error) {
+        console.error("Get donor messages error:", error);
+
+        return res.status(500).json({
+            message: "Error retrieving donor messages."
+        });
+    }
+};
+
 const getMessagesByRecipient = async (req, res) => {
     try {
         const { recipientId } = req.params;
@@ -94,6 +142,14 @@ const markMessagesAsRead = async (req, res) => {
         const { recipientId } = req.params;
         const { message_ids: messageIds } = req.body || {};
 
+        const parsedRecipientId = Number(recipientId);
+
+        if (!Number.isInteger(parsedRecipientId) || parsedRecipientId <= 0) {
+            return res.status(400).json({
+                message: "A valid recipient ID is required."
+            });
+        }
+
         if (!Array.isArray(messageIds) || messageIds.length === 0) {
             return res.status(400).json({
                 message: "At least one message ID is required."
@@ -106,7 +162,7 @@ const markMessagesAsRead = async (req, res) => {
              WHERE recipient_id = $1
                AND message_id = ANY($2::int[])
              RETURNING message_id, is_read`,
-            [recipientId, messageIds]
+            [parsedRecipientId, messageIds]
         );
 
         if (result.rows.length === 0) {
@@ -202,9 +258,58 @@ const sendMessage = async (req, res) => {
     }
 };
 
+const markDonorMessagesAsRead = async (req, res) => {
+    try {
+        const { donorId } = req.params;
+        const { message_ids: messageIds } = req.body || {};
+
+        const parsedDonorId = Number(donorId);
+
+        if (!Number.isInteger(parsedDonorId) || parsedDonorId <= 0) {
+            return res.status(400).json({
+                message: "A valid donor ID is required."
+            });
+        }
+
+        if (!Array.isArray(messageIds) || messageIds.length === 0) {
+            return res.status(400).json({
+                message: "At least one message ID is required."
+            });
+        }
+
+        const result = await pool.query(
+            `UPDATE messages
+             SET is_read = TRUE
+             WHERE donor_id = $1
+               AND message_id = ANY($2::int[])
+             RETURNING message_id, is_read`,
+            [parsedDonorId, messageIds]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: "No messages found for this donor."
+            });
+        }
+
+        return res.status(200).json({
+            message: "Messages marked as read.",
+            messages: result.rows
+        });
+    } catch (error) {
+        console.error("Mark donor messages read error:", error);
+
+        return res.status(500).json({
+            message: "Error marking messages as read."
+        });
+    }
+};
+
 module.exports = {
     getMessagesByRecipient,
+    getMessagesByDonor,
     getConversation,
     markMessagesAsRead,
+    markDonorMessagesAsRead,
     sendMessage
 };

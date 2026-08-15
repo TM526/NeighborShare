@@ -84,9 +84,9 @@ const loginAccount = async (req, res) => {
         const normalizedEmail = email.trim().toLowerCase();
 
         const result = await pool.query(
-            `SELECT account_id, email, password_hash, role
-             FROM user_accounts
-             WHERE email = $1`,
+            `SELECT account_id, email, password_hash, role, is_banned
+            FROM user_accounts
+            WHERE email = $1`,
             [normalizedEmail]
         );
 
@@ -97,6 +97,13 @@ const loginAccount = async (req, res) => {
         }
 
         const account = result.rows[0];
+
+        if (account.is_banned === true) {
+            return res.status(403).json({
+                message:
+                    "This account has been banned for community guideline violations."
+            });
+        }
 
         const passwordMatches = await bcrypt.compare(
             password,
