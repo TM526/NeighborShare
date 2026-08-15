@@ -4,18 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/api_config.dart';
+import '../services/recipient_session.dart';
 import 'claim_confirmation.dart';
 
 class RequestFoodScreen extends StatefulWidget {
   final Map<String, String> foodItem;
 
-  // Temporary default for testing until recipient login/session is added.
-  final int recipientId;
+  // Only set when threaded from a screen that already knows it. Any other
+  // entry point falls back to RecipientSession instead of a placeholder.
+  final int? recipientId;
 
   const RequestFoodScreen({
     super.key,
     required this.foodItem,
-    this.recipientId = 1,
+    this.recipientId,
   });
 
   @override
@@ -85,7 +87,8 @@ class _RequestFoodScreenState extends State<RequestFoodScreen> {
       return;
     }
 
-    final recipientId = widget.recipientId;
+    final recipientId =
+        widget.recipientId ?? RecipientSession.recipientId ?? 1;
 
     if (recipientId <= 0) {
       _showError(

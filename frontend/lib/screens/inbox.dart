@@ -7,14 +7,24 @@ import '../services/api_config.dart';
 import 'message_details.dart';
 
 class InboxScreen extends StatefulWidget {
-  final int donorId;
+  // Exactly one of these should be set: donorId shows the donor's inbox
+  // (conversations grouped by recipient), recipientId shows the
+  // recipient's inbox (conversations grouped by donor).
+  final int? donorId;
+  final int? recipientId;
   final http.Client? httpClient;
 
   const InboxScreen({
     super.key,
-    this.donorId = 1,
+    this.donorId,
+    this.recipientId,
     this.httpClient,
-  });
+  }) : assert(
+          donorId != null || recipientId != null,
+          'InboxScreen requires either a donorId or a recipientId.',
+        );
+
+  bool get _isDonorView => donorId != null;
 
   @override
   State<InboxScreen> createState() =>
@@ -37,8 +47,11 @@ class _InboxScreenState extends State<InboxScreen> {
   Future<void> _loadMessages() async {
     try {
       final client = widget.httpClient ?? http.Client();
+      final uri = widget._isDonorView
+          ? Uri.parse('$apiBaseUrl/messages/donor/${widget.donorId}')
+          : Uri.parse('$apiBaseUrl/messages/${widget.recipientId}');
       final response = await client.get(
-        Uri.parse('$apiBaseUrl/messages/donor/${widget.donorId}'),
+        uri,
         headers: const {'Accept': 'application/json'},
       );
 
@@ -87,31 +100,40 @@ class _InboxScreenState extends State<InboxScreen> {
   List<Map<String, dynamic>> _buildConversations(
     List<Map<String, dynamic>> messages,
   ) {
+    // Donor view groups by who the recipient was; recipient view groups by
+    // who the donor was -- either way, that's "the other person" in each
+    // conversation.
+    final otherPartyField =
+        widget._isDonorView ? 'recipient_id' : 'donor_id';
+    final otherPartyLabel = widget._isDonorView ? 'Recipient' : 'Donor';
+    final myRole = widget._isDonorView ? 'Donor' : 'Recipient';
+
     final groupedMessages =
         <int, List<Map<String, dynamic>>>{};
 
     for (final message in messages) {
-      final recipientId =
-          int.tryParse(message['recipient_id'].toString());
+      final otherPartyId =
+          int.tryParse(message[otherPartyField].toString());
 
-      if (recipientId == null) continue;
+      if (otherPartyId == null) continue;
 
       groupedMessages
-          .putIfAbsent(recipientId, () => [])
+          .putIfAbsent(otherPartyId, () => [])
           .add(message);
     }
 
     return groupedMessages.entries.map((entry) {
-      final recipientMessages = entry.value;
+      final conversationMessages = entry.value;
 
-      final unreadMessages = recipientMessages
-          .where((message) => message['is_read'] != true)
+      final unreadMessages = conversationMessages
+          .where((message) =>
+              message['is_read'] != true && message['sender_role'] != myRole)
           .toList();
 
-      final latestMessage = recipientMessages.last;
+      final latestMessage = conversationMessages.last;
 
       return {
-        "name": "Recipient #${entry.key}",
+        "name": "$otherPartyLabel #${entry.key}",
         "message":
             latestMessage['message']?.toString() ?? '',
         "time":
@@ -119,21 +141,24 @@ class _InboxScreenState extends State<InboxScreen> {
         "unread": unreadMessages.isNotEmpty,
         "count": unreadMessages.length,
         "avatar": entry.key.toString(),
-        "recipient_id": entry.key,
-        "message_ids": recipientMessages
+        otherPartyField: entry.key,
+        "message_ids": conversationMessages
             .map((message) => message['message_id'])
             .where((id) => id != null)
             .toList(),
         "messages":
-            recipientMessages.map(_toDetailMessage).toList(),
+            conversationMessages.map(_toDetailMessage).toList(),
       };
     }).toList();
   }
 
   Map<String, dynamic> _toDetailMessage(Map<String, dynamic> message) {
+    final myRole = widget._isDonorView ? 'Donor' : 'Recipient';
+    final isMe = message['sender_role'] == myRole;
+
     return {
       "message": message['message']?.toString() ?? '',
-      "isMe": false,
+      "isMe": isMe,
       "time": _formatMessageTime(message['sent_at']),
     };
   }
@@ -189,10 +214,11 @@ class _InboxScreenState extends State<InboxScreen> {
     if (unread && messageIds.isNotEmpty) {
       try {
         final client = widget.httpClient ?? http.Client();
+        final readUri = widget._isDonorView
+            ? Uri.parse('$apiBaseUrl/messages/donor/${widget.donorId}/read')
+            : Uri.parse('$apiBaseUrl/messages/${widget.recipientId}/read');
         final response = await client.patch(
-          Uri.parse(
-            '$apiBaseUrl/messages/donor/${widget.donorId}/read',
-          ),
+          readUri,
           headers: const {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
@@ -235,6 +261,13 @@ class _InboxScreenState extends State<InboxScreen> {
                   ?.whereType<Map>()
                   .map((message) => Map<String, dynamic>.from(message))
                   .toList(),
+          donorId: widget._isDonorView
+              ? widget.donorId
+              : conversation['donor_id'] as int?,
+          recipientId: widget._isDonorView
+              ? conversation['recipient_id'] as int?
+              : widget.recipientId,
+          viewerRole: widget._isDonorView ? 'Donor' : 'Recipient',
         ),
       ),
     );

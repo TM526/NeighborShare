@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/api_config.dart';
+import '../services/recipient_session.dart';
 import 'recipient_dashboard.dart';
 
 class CreateRecipientProfileScreen extends StatefulWidget {
@@ -36,6 +37,7 @@ class _CreateRecipientProfileScreenState
   String _selectedDietaryPreference = 'None';
   bool _isSubmitting = false;
   bool _isLoadingProfile = false;
+  int? _createdRecipientId;
 
   final List<String> _dietaryOptions = [
     'None',
@@ -252,6 +254,19 @@ class _CreateRecipientProfileScreenState
           (widget.isEditMode &&
               response.statusCode == 200)
       ) {
+        if (!widget.isEditMode) {
+          final body = jsonDecode(response.body) as Map<String, dynamic>;
+          final recipientData =
+              body['recipient'] as Map<String, dynamic>? ?? body;
+          _createdRecipientId =
+              (recipientData['recipient_id'] as num?)?.toInt();
+        }
+
+        final loggedInRecipientId = widget.recipientId ?? _createdRecipientId;
+        if (loggedInRecipientId != null) {
+          RecipientSession.login(loggedInRecipientId);
+        }
+
         _showSuccessDialog();
       } else {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -358,7 +373,10 @@ class _CreateRecipientProfileScreenState
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
                           builder: (_) => RecipientDashboardScreen(
-                            recipientId: widget.recipientId ?? 1,
+                            recipientId: widget.recipientId ??
+                                _createdRecipientId ??
+                                RecipientSession.recipientId ??
+                                1,
                           ),
                         ),
                       );

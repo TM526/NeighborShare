@@ -4,18 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/api_config.dart';
+import '../services/recipient_session.dart';
 import 'listing_details.dart';
 import 'message_compose.dart';
 import 'request_food.dart';
 
 class BrowseListingsScreen extends StatefulWidget {
-  const BrowseListingsScreen({super.key});
+  // Only set when threaded from a screen that already knows it. Any other
+  // entry point falls back to RecipientSession instead of a placeholder.
+  final int? recipientId;
+
+  const BrowseListingsScreen({super.key, this.recipientId});
 
   @override
   State<BrowseListingsScreen> createState() => _BrowseListingsScreenState();
 }
 
 class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
+  int get _effectiveRecipientId =>
+      widget.recipientId ?? RecipientSession.recipientId ?? 1;
+
   final TextEditingController _searchController = TextEditingController();
 
   String selectedCategory = "All";
@@ -309,6 +317,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                 MaterialPageRoute(
                   builder: (_) => FoodListingDetailsPage(
                     listing: food,
+                    recipientId: _effectiveRecipientId,
                   ),
                 ),
               );
@@ -399,6 +408,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                                     listingName: food["name"],
                                     donorId:
                                         int.tryParse(food["donor_id"] ?? ""),
+                                    recipientId: _effectiveRecipientId,
                                   ),
                                 ),
                               );
@@ -434,6 +444,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                                       MaterialPageRoute(
                                         builder: (_) => RequestFoodScreen(
                                           foodItem: food,
+                                          recipientId: _effectiveRecipientId,
                                         ),
                                       ),
                                     );

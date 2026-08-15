@@ -96,7 +96,7 @@ describe("messageController", () => {
 
         expect(pool.query).toHaveBeenCalledWith(
             expect.stringContaining("SET is_read = TRUE"),
-            ["2", [1, 2]]
+            [2, [1, 2]]
         );
         expect(res.status).toHaveBeenCalledWith(200);
     });
@@ -116,7 +116,12 @@ describe("messageController", () => {
 
     test("sends a message from a recipient to a donor", async () => {
         const req = {
-            body: { donor_id: "4", recipient_id: "2", message: "  Is the food available?  " }
+            body: {
+                donor_id: "4",
+                recipient_id: "2",
+                message: "  Is the food available?  ",
+                sender_role: "Recipient"
+            }
         };
         const res = createResponse();
         const createdMessage = {
@@ -125,7 +130,8 @@ describe("messageController", () => {
             recipient_id: 2,
             message: "Is the food available?",
             sent_at: "2026-01-01T10:00:00.000Z",
-            is_read: false
+            is_read: false,
+            sender_role: "Recipient"
         };
 
         pool.query
@@ -138,10 +144,22 @@ describe("messageController", () => {
         expect(pool.query).toHaveBeenCalledTimes(3);
         expect(pool.query).toHaveBeenLastCalledWith(
             expect.stringContaining("INSERT INTO messages"),
-            [4, 2, "Is the food available?"]
+            [4, 2, "Is the food available?", "Recipient"]
         );
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(createdMessage);
+    });
+
+    test("rejects a missing or invalid sender_role", async () => {
+        const req = {
+            body: { donor_id: 4, recipient_id: 2, message: "Hello" }
+        };
+        const res = createResponse();
+
+        await sendMessage(req, res);
+
+        expect(pool.query).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(400);
     });
 
     test.each([
@@ -149,7 +167,7 @@ describe("messageController", () => {
         ["whitespace-only message", "   "]
     ])("rejects an %s", async (_description, message) => {
         const req = {
-            body: { donor_id: 4, recipient_id: 2, message }
+            body: { donor_id: 4, recipient_id: 2, message, sender_role: "Recipient" }
         };
         const res = createResponse();
 
@@ -189,7 +207,7 @@ describe("messageController", () => {
         "This is shit"
     ])("rejects a message containing profanity: '%s'", async (message) => {
         const req = {
-            body: { donor_id: 4, recipient_id: 2, message }
+            body: { donor_id: 4, recipient_id: 2, message, sender_role: "Recipient" }
         };
         const res = createResponse();
 
@@ -206,7 +224,7 @@ describe("messageController", () => {
 
     test("returns 404 when the target donor does not exist", async () => {
         const req = {
-            body: { donor_id: 999, recipient_id: 2, message: "Hello" }
+            body: { donor_id: 999, recipient_id: 2, message: "Hello", sender_role: "Recipient" }
         };
         const res = createResponse();
 
@@ -222,7 +240,7 @@ describe("messageController", () => {
 
     test("returns 404 when the sending recipient does not exist", async () => {
         const req = {
-            body: { donor_id: 4, recipient_id: 999, message: "Hello" }
+            body: { donor_id: 4, recipient_id: 999, message: "Hello", sender_role: "Recipient" }
         };
         const res = createResponse();
 
@@ -236,7 +254,7 @@ describe("messageController", () => {
 
     test("returns 500 when message persistence fails", async () => {
         const req = {
-            body: { donor_id: 4, recipient_id: 2, message: "Hello" }
+            body: { donor_id: 4, recipient_id: 2, message: "Hello", sender_role: "Recipient" }
         };
         const res = createResponse();
 

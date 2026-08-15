@@ -5,16 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/api_config.dart';
+import '../services/recipient_session.dart';
 import 'browse_listings.dart';
+import 'inbox.dart';
 import 'recipient_profile.dart';
 
 class RecipientDashboardScreen extends StatefulWidget {
-  // Temporary default for testing until recipient login/session is added.
-  final int recipientId;
+  // Only set when this screen is reached through the normal
+  // Create Profile -> Dashboard hop. Any other entry point falls back to
+  // RecipientSession instead of a hardcoded placeholder.
+  final int? recipientId;
   // Optional HTTP client for testing. If null, the package http will be used.
   final dynamic httpClient;
 
-  const RecipientDashboardScreen({super.key, this.recipientId = 1, this.httpClient});
+  const RecipientDashboardScreen({super.key, this.recipientId, this.httpClient});
 
   @override
   State<RecipientDashboardScreen> createState() =>
@@ -29,9 +33,15 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
   List<Map<String, dynamic>> _requests = [];
   Timer? _pollingTimer;
 
+  int get _effectiveRecipientId =>
+      widget.recipientId ?? RecipientSession.recipientId ?? 1;
+
   @override
   void initState() {
     super.initState();
+    if (widget.recipientId != null) {
+      RecipientSession.login(widget.recipientId!);
+    }
     _fetchRequests();
     _startPolling();
   }
@@ -46,7 +56,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
       final client = widget.httpClient ?? http.Client();
       final response = await client.get(
         Uri.parse(
-          '$apiBaseUrl/recipients/${widget.recipientId}/requests',
+          '$apiBaseUrl/recipients/$_effectiveRecipientId/requests',
         ),
         headers: const {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 20));
@@ -118,7 +128,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
       final client = widget.httpClient ?? http.Client();
       final response = await client.get(
         Uri.parse(
-          '$apiBaseUrl/recipients/${widget.recipientId}/requests',
+          '$apiBaseUrl/recipients/$_effectiveRecipientId/requests',
         ),
         headers: const {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 20));
@@ -305,6 +315,19 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            tooltip: 'Inbox',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      InboxScreen(recipientId: _effectiveRecipientId),
+                ),
+              );
+            },
+            icon: const Icon(Icons.mail_outline),
+          ),
+          IconButton(
             tooltip: 'Refresh requests',
             onPressed: _isLoading ? null : () => _fetchRequests(notifyStatusChanges: true),
             icon: const Icon(Icons.refresh),
@@ -363,7 +386,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
                                             context,
                                             MaterialPageRoute(
                                               builder: (_) =>
-                                                  const BrowseListingsScreen(),
+                                                  BrowseListingsScreen(recipientId: _effectiveRecipientId),
                                             ),
                                           );
                                         },
@@ -383,7 +406,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
                                             MaterialPageRoute(
                                               builder: (_) =>
                                                   CreateRecipientProfileScreen(
-                                                    recipientId: widget.recipientId,
+                                                    recipientId: _effectiveRecipientId,
                                                   )
                                             ),
                                           );
@@ -405,7 +428,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (_) =>
-                                                const BrowseListingsScreen(),
+                                                BrowseListingsScreen(recipientId: _effectiveRecipientId),
                                           ),
                                         );
                                       },
@@ -423,7 +446,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
                                           MaterialPageRoute(
                                             builder: (_) =>
                                                 CreateRecipientProfileScreen(
-                                                  recipientId: widget.recipientId,
+                                                  recipientId: _effectiveRecipientId,
                                                 )
                                           ),
                                         );
@@ -490,7 +513,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const BrowseListingsScreen(),
+                builder: (_) => BrowseListingsScreen(recipientId: _effectiveRecipientId),
               ),
             );
           } else if (index == 2) {
@@ -498,7 +521,7 @@ class _RecipientDashboardScreenState extends State<RecipientDashboardScreen> {
               context,
               MaterialPageRoute(
                 builder: (_) => CreateRecipientProfileScreen(
-                  recipientId: widget.recipientId,
+                  recipientId: _effectiveRecipientId,
                 ),
               ),
             );

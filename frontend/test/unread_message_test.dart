@@ -48,7 +48,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: InboxScreen(httpClient: client),
+        home: InboxScreen(recipientId: 1, httpClient: client),
       ),
     );
     await tester.pumpAndSettle();

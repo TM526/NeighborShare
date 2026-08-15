@@ -7,6 +7,7 @@ import '../services/api_config.dart';
 import 'browse_listings.dart';
 import 'create_listing.dart';
 import 'donor_profile.dart';
+import 'inbox.dart';
 import 'my_listings.dart';
 import 'request_review.dart';
 
@@ -31,6 +32,13 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<Map<String, dynamic>> _listings = [];
+
+  // Messages are tied to donor_id (donor_profiles), not accountId
+  // (user_accounts), so the inbox needs this derived from a listing.
+  int? get _donorId {
+    if (_listings.isEmpty) return null;
+    return int.tryParse(_listings.first['donor_id']?.toString() ?? '');
+  }
 
   @override
   void initState() {
@@ -474,6 +482,22 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            tooltip: _donorId == null
+                ? 'Inbox (create a listing first)'
+                : 'Inbox',
+            onPressed: _donorId == null
+                ? null
+                : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => InboxScreen(donorId: _donorId),
+                      ),
+                    );
+                  },
+            icon: const Icon(Icons.mail_outline),
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: _isLoading ? null : _refreshDashboard,

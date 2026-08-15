@@ -19,6 +19,8 @@ const containsProfanity = (text) => {
     );
 };
 
+const allowedSenderRoles = ["Donor", "Recipient"];
+
 const getMessagesByDonor = async (req, res) => {
     try {
         const { donorId } = req.params;
@@ -50,7 +52,8 @@ const getMessagesByDonor = async (req, res) => {
                 recipient_id,
                 message,
                 sent_at,
-                is_read
+                is_read,
+                sender_role
              FROM messages
              WHERE donor_id = $1
              ORDER BY sent_at ASC`,
@@ -85,7 +88,7 @@ const getMessagesByRecipient = async (req, res) => {
         }
 
         const result = await pool.query(
-            `SELECT message_id, donor_id, recipient_id, message, sent_at, is_read
+            `SELECT message_id, donor_id, recipient_id, message, sent_at, is_read, sender_role
              FROM messages
              WHERE recipient_id = $1
              ORDER BY sent_at ASC`,
@@ -120,7 +123,7 @@ const getConversation = async (req, res) => {
         }
 
         const result = await pool.query(
-            `SELECT message_id, donor_id, recipient_id, message, sent_at, is_read
+            `SELECT message_id, donor_id, recipient_id, message, sent_at, is_read, sender_role
              FROM messages
              WHERE donor_id = $1 AND recipient_id = $2
              ORDER BY sent_at ASC`,
@@ -185,7 +188,12 @@ const markMessagesAsRead = async (req, res) => {
 
 const sendMessage = async (req, res) => {
     try {
-        const { donor_id: donorId, recipient_id: recipientId, message } = req.body || {};
+        const {
+            donor_id: donorId,
+            recipient_id: recipientId,
+            message,
+            sender_role: senderRole
+        } = req.body || {};
         const parsedDonorId = Number(donorId);
         const parsedRecipientId = Number(recipientId);
 
@@ -198,6 +206,12 @@ const sendMessage = async (req, res) => {
         if (!Number.isInteger(parsedRecipientId) || parsedRecipientId <= 0) {
             return res.status(400).json({
                 message: "A valid recipient ID is required."
+            });
+        }
+
+        if (!allowedSenderRoles.includes(senderRole)) {
+            return res.status(400).json({
+                message: "A valid sender_role ('Donor' or 'Recipient') is required."
             });
         }
 
@@ -242,10 +256,10 @@ const sendMessage = async (req, res) => {
         }
 
         const result = await pool.query(
-            `INSERT INTO messages (donor_id, recipient_id, message)
-             VALUES ($1, $2, $3)
-             RETURNING message_id, donor_id, recipient_id, message, sent_at, is_read`,
-            [parsedDonorId, parsedRecipientId, trimmedMessage]
+            `INSERT INTO messages (donor_id, recipient_id, message, sender_role)
+             VALUES ($1, $2, $3, $4)
+             RETURNING message_id, donor_id, recipient_id, message, sent_at, is_read, sender_role`,
+            [parsedDonorId, parsedRecipientId, trimmedMessage, senderRole]
         );
 
         return res.status(201).json(result.rows[0]);

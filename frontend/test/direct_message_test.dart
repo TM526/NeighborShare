@@ -97,7 +97,7 @@ void main() {
         (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: InboxScreen(httpClient: createInboxClient()),
+          home: InboxScreen(donorId: 1, httpClient: createInboxClient()),
         ),
       );
 
@@ -126,7 +126,7 @@ void main() {
         (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: InboxScreen(httpClient: createInboxClient()),
+          home: InboxScreen(donorId: 1, httpClient: createInboxClient()),
         ),
       );
 
